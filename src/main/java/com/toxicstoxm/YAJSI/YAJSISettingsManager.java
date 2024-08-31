@@ -35,10 +35,11 @@ public class YAJSISettingsManager {
     }
 
     @SafeVarargs
-    public static YAJSISettingsManager withConfigFile(String file, Class<? extends SettingsBundle>... settingsBundles) {
-        if (file != null && settingsBundles != null) {
-            return withConfigFile(file, settingsBundles);
-        } return new YAJSISettingsManager(null);
+    public static YAJSISettingsManager withConfigFile(ConfigFile configFile, Class<? extends SettingsBundle>... settingsBundles) {
+        if (configFile != null && settingsBundles != null) {
+            return withConfigFile(configFile, Arrays.stream(settingsBundles).toList());
+        }
+        return new YAJSISettingsManager(null);
     }
 
     public static YAJSISettingsManager withConfigFile(ConfigFile configFile, Collection<Class<? extends SettingsBundle>> configFiles) {
