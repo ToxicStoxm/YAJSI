@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.toxicstoxm'
-version = '1.0-SNAPSHOT'
+version = '1.3'
 
 repositories {
     mavenCentral()
@@ -40,7 +40,7 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates("com.toxicstoxm.YAJSI", "YAJSI", "1.2")
+    coordinates("com.toxicstoxm.YAJSI", "YAJSI", "1.3")
 
     pom {
         name = "YAJSI"
@@ -67,6 +67,4 @@ mavenPublishing {
             developerConnection = "scm:git:ssh://git@github.com/ToxicStoxm/YAJSI.git"
         }
     }
-
-
 }
