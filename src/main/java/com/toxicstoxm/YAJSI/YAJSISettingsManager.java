@@ -1,6 +1,7 @@
 package com.toxicstoxm.YAJSI;
 
 
+import com.toxicstoxm.YAJSI.yaml.InvalidConfigurationException;
 import com.toxicstoxm.YAJSI.yaml.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
 
@@ -100,7 +101,8 @@ public class YAJSISettingsManager {
     private static @NotNull YamlConfiguration getYamlConfiguration(YAMLConfig yamlConfig) throws IOException {
         File configFile = new File(yamlConfig.configFile.path);
         YamlConfiguration yaml = new YamlConfiguration();
-        if (!configFile.exists() && configFile.createNewFile()) {
+        if (!configFile.exists()) {
+            if (!configFile.createNewFile()) throw new NullPointerException("Failed to create config file!");
             // Get the internal resource folder and default config values
             URL url = yamlConfig.configFile.defaultFile;
 
@@ -125,7 +127,12 @@ public class YAJSISettingsManager {
             } catch (NullPointerException e) {
                 System.out.println("Couldn't load configFile " + configFile.getPath() + ". No resource was found!");
             }
-        } else throw new NullPointerException();
+        }
+        try {
+            yaml.load(configFile);
+        } catch (InvalidConfigurationException e) {
+            throw new RuntimeException(e);
+        }
         return yaml;
     }
 
