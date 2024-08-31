@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.toxicstoxm'
-version = '1.4'
+version = '1.4.1'
 
 repositories {
     mavenCentral()
@@ -40,7 +40,7 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates("com.toxicstoxm.YAJSI", "YAJSI", "1.4")
+    coordinates("com.toxicstoxm.YAJSI", "YAJSI", "1.4.1")
 
     pom {
         name = "YAJSI"

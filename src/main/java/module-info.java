@@ -3,4 +3,5 @@ module YAJSI.main {
     requires org.jetbrains.annotations;
     requires org.yaml.snakeyaml;
     requires java.logging;
+    exports com.toxicstoxm.YAJSI;
 }
