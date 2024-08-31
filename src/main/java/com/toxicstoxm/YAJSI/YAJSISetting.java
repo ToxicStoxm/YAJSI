@@ -3,18 +3,18 @@ package com.toxicstoxm.YAJSI;
 import lombok.Getter;
 import lombok.Setter;
 
-public class LEDSuiteSetting<T> implements Setting<T> {
+public class YAJSISetting<T> implements Setting<T> {
     private T value;
 
     @Setter
     @Getter
     private boolean shouldSave = false;
 
-    public LEDSuiteSetting(T value) {
+    public YAJSISetting(T value) {
         this.value = value;
     }
 
-    public LEDSuiteSetting(Setting<Object> setting, Class<T> clazz) {
+    public YAJSISetting(Setting<Object> setting, Class<T> clazz) {
         if (!setting.isType(setting.get())) {
             throw new IllegalArgumentException("Type mismatch");
         }
@@ -44,7 +44,7 @@ public class LEDSuiteSetting<T> implements Setting<T> {
 
     @Override
     public String toString() {
-        return "LEDSuiteSetting: [ Name: " + getClass().getName() + " Type: " + getType().getName() + " Value: " + value.toString() + " ]";
+        return YAJSISetting.class.getName() + ": [ Name: " + getClass().getName() + " Type: " + getType().getName() + " Value: " + value.toString() + " ]";
     }
 
     @Override

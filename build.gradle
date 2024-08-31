@@ -1,5 +1,8 @@
+import com.vanniktech.maven.publish.SonatypeHost
+
 plugins {
-    id 'java'
+    id 'java-library'
+    id "com.vanniktech.maven.publish" version "0.29.0"
 }
 
 group = 'com.toxicstoxm'
@@ -28,6 +31,42 @@ test {
 
 tasks.jar {
     manifest {
-        attributes['Main-Class'] = 'com.toxicstoxm.YAJSI.LEDSuiteSettingsManager'
+        attributes['Main-Class'] = 'com.toxicstoxm.YAJSI.YAJSISettingsManager'
     }
+}
+
+mavenPublishing {
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+
+    signAllPublications()
+
+    coordinates("com.toxicstoxm.YAJSI", "YAJSI", "1.2")
+
+    pom {
+        name = "YAJSI"
+        description = "YAJSI (Yet another Java settings implementation) uses SnakeYAML and some cool logic to make your life easier"
+        inceptionYear = "2024"
+        url = "https://github.com/ToxicStoxm/YAJSI/"
+        licenses {
+            license {
+                name = "The GNU General Public License, Version 3.0"
+                url = "https://www.gnu.org/licenses/gpl-3.0.html"
+                distribution = "https://www.gnu.org/licenses/gpl-3.0.html"
+            }
+        }
+        developers {
+            developer {
+                id = "toxicstoxm"
+                name = "ToxicStoxm"
+                url = "https://github.com/ToxicStoxm/"
+            }
+        }
+        scm {
+            url = "https://github.com/ToxicStoxm/YAJSI/"
+            connection = "scm:git:git://github.com/ToxicStoxm/YAJSI.git"
+            developerConnection = "scm:git:ssh://git@github.com/ToxicStoxm/YAJSI.git"
+        }
+    }
+
+
 }

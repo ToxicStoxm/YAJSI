@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 @SuppressWarnings("unchecked")
-public class SettingsHandler<T> {
+public class YAJSISettingsHandler<T> {
 
     public void loadSettings(Class<? extends SettingsBundle> settingsBundle, SettingsAccessor accessor)
             throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
@@ -24,8 +24,8 @@ public class SettingsHandler<T> {
                 Setting<Object> fetchedSetting = accessor.get(path);
                 if (fetchedSetting != null) {
                     T setting = (T) constructor.newInstance(fetchedSetting);
-                    if (setting instanceof LEDSuiteSetting<?> ledSuiteSetting)
-                        System.out.println(ledSuiteSetting.getIdentifier(true));
+                    if (setting instanceof YAJSISetting<?> YAJSISetting)
+                        System.out.println(YAJSISetting.getIdentifier(true));
                     else System.out.print(setting);
                 } else System.out.println(innerClass.getName() + " could not be loaded from config! Path '" + path + "' doesn't exist!");
             }
@@ -48,8 +48,8 @@ public class SettingsHandler<T> {
                         Setting<?> setting = ((Setting<?>) getter.invoke(innerClass));
                         T value = (T) setting.get();
                         boolean save = true;
-                        if (setting instanceof LEDSuiteSetting<?> ledSuiteSetting) {
-                           if (!ledSuiteSetting.isShouldSave()) save = false;
+                        if (setting instanceof YAJSISetting<?> YAJSISetting) {
+                           if (!YAJSISetting.isShouldSave()) save = false;
                         }
 
                         if (save) {
