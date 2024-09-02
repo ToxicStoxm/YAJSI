@@ -3,6 +3,6 @@ module YAJSI {
     requires org.jetbrains.annotations;
     requires org.yaml.snakeyaml;
     requires java.logging;
-    exports com.toxicstoxm.YAJSI;
-    exports com.toxicstoxm.YAJSI.yaml;
+    exports com.toxicstoxm.YAJSI.api.file;
+    exports com.toxicstoxm.YAJSI.api.settings;
 }

@@ -1,4 +1,4 @@
-package com.toxicstoxm.YAJSI.yaml.file;
+package com.toxicstoxm.YAJSI.api.file;
 
 import com.toxicstoxm.YAJSI.yaml.MemoryConfiguration;
 import com.toxicstoxm.YAJSI.yaml.MemoryConfigurationOptions;

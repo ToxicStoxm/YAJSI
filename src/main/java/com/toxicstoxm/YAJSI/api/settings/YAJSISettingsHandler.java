@@ -1,6 +1,6 @@
-package com.toxicstoxm.YAJSI;
+package com.toxicstoxm.YAJSI.api.settings;
 
-import com.toxicstoxm.YAJSI.yaml.file.YamlConfiguration;
+import com.toxicstoxm.YAJSI.api.file.YamlConfiguration;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -20,7 +20,7 @@ public class YAJSISettingsHandler<T> {
         for (Class<?> innerClass : settingsBundle.getDeclaredClasses()) {
             if (innerClass.isAnnotationPresent(YAMLSetting.class)) {
                 String path = innerClass.getAnnotation(YAMLSetting.class).path();
-                Constructor<?> constructor = innerClass.getConstructor(com.toxicstoxm.YAJSI.Setting.class);
+                Constructor<?> constructor = innerClass.getConstructor(Setting.class);
                 Setting<Object> fetchedSetting = accessor.get(path);
                 if (fetchedSetting != null) {
                     T setting = (T) constructor.newInstance(fetchedSetting);

@@ -1,4 +1,4 @@
-package com.toxicstoxm.YAJSI;
+package com.toxicstoxm.YAJSI.api.settings;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

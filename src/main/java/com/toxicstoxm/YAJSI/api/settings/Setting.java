@@ -1,4 +1,4 @@
-package com.toxicstoxm.YAJSI;
+package com.toxicstoxm.YAJSI.api.settings;
 
 public interface Setting<T> {
 

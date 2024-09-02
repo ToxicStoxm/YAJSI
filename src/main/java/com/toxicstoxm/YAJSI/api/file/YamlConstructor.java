@@ -1,4 +1,4 @@
-package com.toxicstoxm.YAJSI.yaml.file;
+package com.toxicstoxm.YAJSI.api.file;
 
 import com.toxicstoxm.YAJSI.yaml.serialization.ConfigurationSerialization;
 import org.jetbrains.annotations.NotNull;

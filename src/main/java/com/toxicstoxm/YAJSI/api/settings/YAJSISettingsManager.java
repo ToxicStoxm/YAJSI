@@ -1,8 +1,8 @@
-package com.toxicstoxm.YAJSI;
+package com.toxicstoxm.YAJSI.api.settings;
 
 
 import com.toxicstoxm.YAJSI.yaml.InvalidConfigurationException;
-import com.toxicstoxm.YAJSI.yaml.file.YamlConfiguration;
+import com.toxicstoxm.YAJSI.api.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
