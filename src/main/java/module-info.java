@@ -8,4 +8,5 @@ module YAJSI {
     exports com.toxicstoxm.YAJSI.api.yaml.util;
     exports com.toxicstoxm.YAJSI.api.yaml.serialization;
     exports com.toxicstoxm.YAJSI.api.yaml;
+    exports com.toxicstoxm.YAJSI.api.logging;
 }
