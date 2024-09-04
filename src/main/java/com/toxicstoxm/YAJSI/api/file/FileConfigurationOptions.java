@@ -1,7 +1,7 @@
 package com.toxicstoxm.YAJSI.api.file;
 
-import com.toxicstoxm.YAJSI.yaml.MemoryConfiguration;
-import com.toxicstoxm.YAJSI.yaml.MemoryConfigurationOptions;
+import com.toxicstoxm.YAJSI.api.yaml.MemoryConfiguration;
+import com.toxicstoxm.YAJSI.api.yaml.MemoryConfigurationOptions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

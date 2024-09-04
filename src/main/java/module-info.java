@@ -5,4 +5,7 @@ module YAJSI {
     requires java.logging;
     exports com.toxicstoxm.YAJSI.api.file;
     exports com.toxicstoxm.YAJSI.api.settings;
+    exports com.toxicstoxm.YAJSI.api.yaml.util;
+    exports com.toxicstoxm.YAJSI.api.yaml.serialization;
+    exports com.toxicstoxm.YAJSI.api.yaml;
 }

@@ -1,8 +1,8 @@
 package com.toxicstoxm.YAJSI.api.file;
 
-import com.toxicstoxm.YAJSI.yaml.ConfigurationSection;
-import com.toxicstoxm.YAJSI.yaml.serialization.ConfigurationSerializable;
-import com.toxicstoxm.YAJSI.yaml.serialization.ConfigurationSerialization;
+import com.toxicstoxm.YAJSI.api.yaml.ConfigurationSection;
+import com.toxicstoxm.YAJSI.api.yaml.serialization.ConfigurationSerializable;
+import com.toxicstoxm.YAJSI.api.yaml.serialization.ConfigurationSerialization;
 import org.jetbrains.annotations.NotNull;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.nodes.Node;

@@ -1,4 +1,4 @@
-package com.toxicstoxm.YAJSI.yaml;
+package com.toxicstoxm.YAJSI.api.yaml;
 
 /**
  * Exception thrown when attempting to load an invalid {@link Configuration}

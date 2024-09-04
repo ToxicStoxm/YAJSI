@@ -1,9 +1,9 @@
 package com.toxicstoxm.YAJSI.api.file;
 
 
-import com.toxicstoxm.YAJSI.yaml.Configuration;
-import com.toxicstoxm.YAJSI.yaml.InvalidConfigurationException;
-import com.toxicstoxm.YAJSI.yaml.MemoryConfiguration;
+import com.toxicstoxm.YAJSI.api.yaml.Configuration;
+import com.toxicstoxm.YAJSI.api.yaml.InvalidConfigurationException;
+import com.toxicstoxm.YAJSI.api.yaml.MemoryConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

@@ -1,6 +1,6 @@
-package com.toxicstoxm.YAJSI.yaml;
+package com.toxicstoxm.YAJSI.api.yaml;
 
-import com.toxicstoxm.YAJSI.yaml.serialization.ConfigurationSerializable;
+import com.toxicstoxm.YAJSI.api.yaml.serialization.ConfigurationSerializable;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

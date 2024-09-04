@@ -1,4 +1,4 @@
-package com.toxicstoxm.YAJSI.yaml;
+package com.toxicstoxm.YAJSI.api.yaml;
 
 import org.jetbrains.annotations.NotNull;
 
