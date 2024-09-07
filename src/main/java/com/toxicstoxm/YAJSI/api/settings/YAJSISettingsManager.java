@@ -196,7 +196,7 @@ public class YAJSISettingsManager {
                     // loads the new config file again
                     if (file.delete()) {
                         yaml = getYamlConfiguration(yamlConfig);
-                        new YAJSISettingsHandler<>(logger).saveSettings(yamlConfig.settingsBundle, backup);
+                        new YAJSISettingsHandler<>(logger).saveSettings(yamlConfig.settingsBundle, backup, true);
                         yaml.save(yamlConfig.configFile.path);
                         tempSettings.clear();
                         for (String key : yaml.getKeys(true)) {
