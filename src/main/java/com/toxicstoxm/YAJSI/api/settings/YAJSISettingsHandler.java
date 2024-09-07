@@ -48,6 +48,10 @@ public class YAJSISettingsHandler<T> {
     }
 
     public boolean saveSettings(Class<? extends SettingsBundle> settingsBundle, YamlConfiguration yaml) {
+        return saveSettings(settingsBundle, yaml, false);
+    }
+
+    public boolean saveSettings(Class<? extends SettingsBundle> settingsBundle, YamlConfiguration yaml, boolean ignoreShouldSave) {
         boolean shouldSave = false;
         boolean error = false;
         if (!List.of(settingsBundle.getInterfaces()).contains(SettingsBundle.class)) {
@@ -68,7 +72,7 @@ public class YAJSISettingsHandler<T> {
                             T value = (T) setting.get();
                             boolean save = true;
                             if (setting instanceof YAJSISetting<?> YAJSISetting) {
-                                if (!YAJSISetting.isShouldSave()) save = false;
+                                if (!YAJSISetting.isShouldSave() && !ignoreShouldSave) save = false;
                             }
 
                             if (save) {
