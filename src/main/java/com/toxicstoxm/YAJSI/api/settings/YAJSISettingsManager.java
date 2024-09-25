@@ -5,6 +5,7 @@ import com.toxicstoxm.YAJSI.api.logging.Logger;
 import com.toxicstoxm.YAJSI.api.yaml.InvalidConfigurationException;
 import com.toxicstoxm.YAJSI.api.file.YamlConfiguration;
 import lombok.Getter;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -46,23 +47,27 @@ public class YAJSISettingsManager {
     }
 
     // static init methods
-    public static YAJSISettingsManager withConfigFile(ConfigFile configFile, Class<? extends SettingsBundle> settingsBundle) {
+    @Contract("_, _ -> new")
+    public static @NotNull YAJSISettingsManager withConfigFile(ConfigFile configFile, Class<? extends SettingsBundle> settingsBundle) {
         return new YAJSISettingsManager(Collections.singleton(new YAMLConfig(configFile, settingsBundle)));
     }
 
-    public static YAJSISettingsManager withConfigFile(YAMLConfig YAMLConfig) {
+    @Contract("_ -> new")
+    public static @NotNull YAJSISettingsManager withConfigFile(YAMLConfig YAMLConfig) {
         return new YAJSISettingsManager((Collections.singleton(YAMLConfig)));
     }
 
+    @Contract("null, _ -> new; !null, null -> new")
     @SafeVarargs
-    public static YAJSISettingsManager withConfigFile(ConfigFile configFile, Class<? extends SettingsBundle>... settingsBundles) {
+    public static @NotNull YAJSISettingsManager withConfigFile(ConfigFile configFile, Class<? extends SettingsBundle>... settingsBundles) {
         if (configFile != null && settingsBundles != null) {
             return withConfigFile(configFile, Arrays.stream(settingsBundles).toList());
         }
         return new YAJSISettingsManager(null);
     }
 
-    public static YAJSISettingsManager withConfigFile(ConfigFile configFile, Collection<Class<? extends SettingsBundle>> configFiles) {
+    @Contract("_, _ -> new")
+    public static @NotNull YAJSISettingsManager withConfigFile(ConfigFile configFile, @NotNull Collection<Class<? extends SettingsBundle>> configFiles) {
         List<YAMLConfig> YAMLConfigList = new ArrayList<>();
         for (Class<? extends SettingsBundle> settingsBundle : configFiles) {
             YAMLConfigList.add(new YAMLConfig(configFile, settingsBundle));
@@ -70,7 +75,8 @@ public class YAJSISettingsManager {
         return new YAJSISettingsManager(YAMLConfigList);
     }
 
-    public static YAJSISettingsManager withConfigFiles(Map<ConfigFile, Class<? extends SettingsBundle>> configFiles) {
+    @Contract("_ -> new")
+    public static @NotNull YAJSISettingsManager withConfigFiles(@NotNull Map<ConfigFile, Class<? extends SettingsBundle>> configFiles) {
         List<YAMLConfig> YAMLConfigList = new ArrayList<>();
         for (Map.Entry<ConfigFile, Class<? extends SettingsBundle>> configFile : configFiles.entrySet()) {
             YAMLConfigList.add(new YAMLConfig(configFile.getKey(), configFile.getValue()));
@@ -78,13 +84,15 @@ public class YAJSISettingsManager {
         return new YAJSISettingsManager(YAMLConfigList);
     }
 
-    public static YAJSISettingsManager withConfigFiles(Collection<YAMLConfig> YAMLConfigs) {
+    @Contract("_ -> new")
+    public static @NotNull YAJSISettingsManager withConfigFiles(Collection<YAMLConfig> YAMLConfigs) {
         return new YAJSISettingsManager(YAMLConfigs);
     }
 
     // factory methods
 
-    public static YAJSISettingsManager builder() {
+    @Contract(" -> new")
+    public static @NotNull YAJSISettingsManager builder() {
         return new YAJSISettingsManager();
     }
 
@@ -112,7 +120,7 @@ public class YAJSISettingsManager {
         return build(null);
     }
 
-    public YAJSISettingsManager buildWithConfigFile(ConfigFile configFile, Collection<Class<? extends SettingsBundle>> configFiles) {
+    public YAJSISettingsManager buildWithConfigFile(ConfigFile configFile, @NotNull Collection<Class<? extends SettingsBundle>> configFiles) {
         List<YAMLConfig> YAMLConfigList = new ArrayList<>();
         for (Class<? extends SettingsBundle> settingsBundle : configFiles) {
             YAMLConfigList.add(new YAMLConfig(configFile, settingsBundle));
@@ -120,7 +128,7 @@ public class YAJSISettingsManager {
         return build(YAMLConfigList);
     }
 
-    public YAJSISettingsManager buildWithConfigFiles(Map<ConfigFile, Class<? extends SettingsBundle>> configFiles) {
+    public YAJSISettingsManager buildWithConfigFiles(@NotNull Map<ConfigFile, Class<? extends SettingsBundle>> configFiles) {
         List<YAMLConfig> YAMLConfigList = new ArrayList<>();
         for (Map.Entry<ConfigFile, Class<? extends SettingsBundle>> configFile : configFiles.entrySet()) {
             YAMLConfigList.add(new YAMLConfig(configFile.getKey(), configFile.getValue()));
@@ -168,7 +176,7 @@ public class YAJSISettingsManager {
 
     public record LoadResult(HashMap<String, Setting<Object>> tempSettings, boolean successful) {}
 
-    public LoadResult loadOnly(YAMLConfig yamlConfig) {
+    public LoadResult loadOnly(@NotNull YAMLConfig yamlConfig) {
         HashMap<String, Setting<Object>> tempSettingsAll = new HashMap<>();
         boolean successful = true;
         String prefix = "[" + Arrays.stream(yamlConfig.settingsBundle.getName().split("\\.")).toList().getLast() + "]: ";
@@ -245,7 +253,7 @@ public class YAJSISettingsManager {
         }
     }
 
-    private @NotNull YamlConfiguration getYamlConfiguration(YAMLConfig yamlConfig) throws IOException {
+    private @NotNull YamlConfiguration getYamlConfiguration(@NotNull YAMLConfig yamlConfig) throws IOException {
         File configFile = new File(yamlConfig.configFile.path);
         YamlConfiguration yaml = new YamlConfiguration();
         if (!configFile.exists()) {
