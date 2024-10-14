@@ -2,7 +2,7 @@ import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
     id 'java-library'
-    id "com.vanniktech.maven.publish" version "0.29.0"
+    id "com.vanniktech.maven.publish" version "0.30.0"
 }
 
 group = 'com.toxicstoxm'
@@ -13,8 +13,8 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.jetbrains:annotations:25.0.0'
-    annotationProcessor 'org.jetbrains:annotations:25.0.0'
+    implementation 'org.jetbrains:annotations:26.0.0'
+    annotationProcessor 'org.jetbrains:annotations:26.0.0'
 
     compileOnly 'org.projectlombok:lombok:1.18.34'
     annotationProcessor 'org.projectlombok:lombok:1.18.34'
