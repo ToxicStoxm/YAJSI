@@ -8,7 +8,7 @@ public class YAJSISetting<T> implements Setting<T> {
 
     @Setter
     @Getter
-    private boolean shouldSave = false;
+    private boolean shouldSave = true;
 
     public YAJSISetting(T value) {
         this.value = value;
