@@ -230,16 +230,19 @@ public class YAJSISettingsManager {
         return new LoadResult(tempSettingsAll, successful);
     }
 
-    // saving all settings from all bundles
-    
     public void save() {
+        save(true);
+    }
+
+    // saving all settings from all bundles
+    public void save(boolean displayLog) {
         for (YAMLConfig yamlConfig : yamlConfigs) {
             String prefix = "[" + Arrays.stream(yamlConfig.settingsBundle.getName().split("\\.")).toList().getLast() + "]: ";
             try {
                 YamlConfiguration yaml = getYamlConfiguration(yamlConfig);
 
                 // Save settings via SettingsManager and check if the file should be saved
-                boolean shouldSave = new YAJSISettingsHandler<>(logger).saveSettings(yamlConfig.settingsBundle, yaml);
+                boolean shouldSave = new YAJSISettingsHandler<>(displayLog ? logger : _ -> {}).saveSettings(yamlConfig.settingsBundle, yaml);
 
                 // only save if required
                 if (shouldSave) {
