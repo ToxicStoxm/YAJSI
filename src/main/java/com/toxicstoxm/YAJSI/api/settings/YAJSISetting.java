@@ -1,7 +1,9 @@
 package com.toxicstoxm.YAJSI.api.settings;
 
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
+import org.jetbrains.annotations.NotNull;
 
 public class YAJSISetting<T> implements Setting<T> {
     private T value;
@@ -14,7 +16,7 @@ public class YAJSISetting<T> implements Setting<T> {
         this.value = value;
     }
 
-    public YAJSISetting(Setting<Object> setting, Class<T> clazz) {
+    public YAJSISetting(@NotNull Setting<Object> setting, Class<T> clazz) {
         if (!setting.isType(setting.get())) {
             throw new IllegalArgumentException("Type mismatch");
         }
@@ -22,17 +24,17 @@ public class YAJSISetting<T> implements Setting<T> {
     }
 
     @Override
-    public T get() {
+    public @NotNull T get() {
         return value;
     }
 
     @Override
-    public void set(T value) {
+    public void set(@NonNull T value) {
         this.value = value;
     }
 
     @Override
-    public void set(T value, boolean shouldSave) {
+    public void set(@NonNull T value, boolean shouldSave) {
         this.value = value;
         this.shouldSave = shouldSave;
     }
