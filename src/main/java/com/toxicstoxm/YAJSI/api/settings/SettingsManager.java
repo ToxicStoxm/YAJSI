@@ -13,10 +13,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.util.*;
 
 /**
@@ -345,11 +342,15 @@ public class SettingsManager {
                     if (o == null) throw new NullPointerException("Arg object can't be null!");
                     constructorArgsC[i] = o.getClass();
                 }
-                defaultYamlConfig = clazz.getDeclaredConstructor(constructorArgsC).newInstance(constructorArgs);
+                Constructor<?> constructor = clazz.getDeclaredConstructor(constructorArgsC);
+                constructor.setAccessible(true);
+                defaultYamlConfig = constructor.newInstance(constructorArgs);
                 log("Successfully instantiated class with arguments");
             } else {
                 log("Constructor arguments are null; using no-args constructor");
-                defaultYamlConfig = clazz.getDeclaredConstructor().newInstance();
+                Constructor<?> constructor = clazz.getDeclaredConstructor();
+                constructor.setAccessible(true);
+                defaultYamlConfig = constructor.newInstance();
             }
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
                  NoSuchMethodException e) {
