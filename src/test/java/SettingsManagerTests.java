@@ -244,8 +244,10 @@ public class SettingsManagerTests {
     @YAMLSetting.Ignore
     private SettingsManager settingsManager;
 
+    public SettingsManagerTests() {}
+
     @Test
-    public void testStuff() {
+    public void testSettingsManagerAPI() {
         settingsManager = SettingsManager.getInstance();
 
         settingsManager.registerYAMLConfiguration(this);

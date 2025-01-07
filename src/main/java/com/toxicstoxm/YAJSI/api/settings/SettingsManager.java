@@ -4,12 +4,19 @@ import com.toxicstoxm.YAJSI.api.file.YamlConfiguration;
 import com.toxicstoxm.YAJSI.api.logging.Logger;
 import com.toxicstoxm.YAJSI.api.yaml.ConfigurationSection;
 import com.toxicstoxm.YAJSI.api.yaml.InvalidConfigurationException;
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfo;
+import io.github.classgraph.ScanResult;
 import lombok.Builder;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.util.*;
 
 /**
@@ -67,7 +74,9 @@ public class SettingsManager {
      * Private constructor, because SettingsManager uses a singleton pattern.
      * @see #getInstance()
      */
-    private SettingsManager() {}
+    private SettingsManager() {
+        log("Initializing SettingsManager singleton instance.");
+    }
 
     /**
      * Storage for registered config class instances and their corresponding YAML Configurations.
@@ -108,14 +117,17 @@ public class SettingsManager {
         @Builder.Default
         public boolean configClassesHaveNoArgsConstructor = true;
 
+        @Builder.Default
+        public String unusedSettingWarning = "This setting is currently unused";
+
         /**
          * Tries to find either a designated system config folder, or if that fails, use the users config folder.
          * @return a config folder, where all configs will be stored by default
          */
         private static @NotNull String getAppDir() {
-            String confHome = java.lang.System.getenv("XDG_CONFIG_HOME");
+            String confHome = System.getenv("XDG_CONFIG_HOME");
             return confHome == null
-                    ? java.lang.System.getProperty("user.home") + "/.config/" + (instance != null ? getInstance().config.appName : defaultAppName) + "/"
+                    ? System.getProperty("user.home") + "/.config/" + (instance != null ? getInstance().config.appName : defaultAppName) + "/"
                     : confHome + "/";
         }
     }
@@ -127,14 +139,20 @@ public class SettingsManager {
      * @param customConfig custom config, which will be used going forward.
      */
     public void configure(@NotNull SettingsManagerConfig customConfig) {
+        log("Configuring SettingsManager with custom settings.");
         this.config = customConfig;
 
         // If a custom logger implementation was provided, try to log all queued log messages using it.
         if (customConfig.logger != defaultLogger && config.enableLogBuffer) {
+            log("Custom logger provided. Flushing log message queue.");
             while (!logMessageQueue.isEmpty()) {
                 customConfig.logger.log(logMessageQueue.poll());
             }
         }
+    }
+
+    private void log(String message) {
+        config.logger.log(message);
     }
 
     /**
@@ -142,6 +160,7 @@ public class SettingsManager {
      * Restores the defaults by creating a new instance of {@link SettingsManagerConfig}.
      */
     public void voidConfig() {
+        log("Voiding current configuration and restoring defaults.");
         this.config = SettingsManagerConfig.builder().build();
     }
 
@@ -151,6 +170,7 @@ public class SettingsManager {
      */
     public int clearLogBuffer() {
         int size = logMessageQueue.size();
+        log("Clearing log buffer with " + size + " messages.");
         logMessageQueue.clear();
         return size;
     }
@@ -176,7 +196,67 @@ public class SettingsManager {
      * @see #reloadFromFile(Object)
      */
     public void registerYAMLConfiguration(@NotNull Object yamlConfig) {
+        log("Registering YAML configuration for class: " + yamlConfig.getClass().getName());
         registerYAMLConfiguration(yamlConfig, false);
+    }
+
+    /**
+     * Tries to automatically detect classes annotated with {@link YAMLConfiguration} and automatically registers them
+     * using {@link #registerYAMLConfiguration(Object)}
+     * <h1>IMPORTANT: </h1>
+     * <b>If 'configClassesHaveNoArgsConstructor' is set to {@code false} in the {@link SettingsManagerConfig},
+     * this will fail silently if no matching constructor was found!
+     * @param packagePath the package to search
+     */
+    public void autoRegister(String packagePath) throws YAJSIException {
+        log("Automatically registering YAML configurations in package: " + packagePath);
+        autoRegister(packagePath, false, (Object) null);
+    }
+
+    /**
+     * Tries to automatically detect classes annotated with {@link YAMLConfiguration} and automatically registers them
+     * using {@link #registerYAMLConfiguration(Object, boolean)}
+     * <h1>IMPORTANT: </h1>
+     * <b>If 'configClassesHaveNoArgsConstructor' is set to {@code false} in the {@link SettingsManagerConfig},
+     * this will fail silently if no matching constructor was found!
+     * @param packagePath the package to search
+     */
+    public void autoRegister(String packagePath, boolean overwrite, @Nullable Object... constructorArgs) throws YAJSIException {
+        log("Starting auto-registration for package: " + packagePath + ", overwrite: " + overwrite);
+        try (ScanResult scanResult = new ClassGraph()
+                .enableClassInfo()
+                .enableAnnotationInfo()
+                .acceptPackages(packagePath)
+                .scan()) {
+
+
+            for (ClassInfo classInfo : scanResult.getClassesWithAnnotation(YamlConfiguration.class.getName())) {
+                Class<?> loadedClass = classInfo.loadClass();
+                try {
+                    if (constructorArgs != null) {
+                        log("Initializing class with arguments: " + loadedClass.getName());
+                        registerYAMLConfiguration(tryToInit(loadedClass, constructorArgs), overwrite);
+                    } else {
+                        log("Initializing class without arguments: " + loadedClass.getName());
+                        registerYAMLConfiguration(tryToInit(loadedClass), overwrite);
+                    }
+                } catch (Exception e) {
+                    log("Failed to auto-register class: " + loadedClass.getName() + " due to: " + e.getMessage());
+                    throw YAJSIException.builder()
+                            .message("Failed to auto-register class '" + loadedClass.getName() + "'!")
+                            .cause(e)
+                            .build();
+                }
+            }
+
+
+        } catch (Exception e) {
+            log("Auto-registering failed due to: " + e.getMessage());
+            throw YAJSIException.builder()
+                    .message("Auto-registering failed due to: " + e.getMessage())
+                    .cause(e)
+                    .build();
+        }
     }
 
     /**
@@ -185,6 +265,7 @@ public class SettingsManager {
      *           If you want to do that use {@link #deleteYAMLConfigurationFileFor(Object)}.
      */
     public void unregisterALLConfigurations() {
+        log("Unregistering all YAML configurations.");
         registeredSettings.clear();
     }
 
@@ -195,7 +276,22 @@ public class SettingsManager {
      *           If you want to do that use {@link #deleteYAMLConfigurationFileFor(Object)}.
      */
     public void unregisterYAMLConfiguration(@NotNull Object yamlConfig) {
+        log("Unregistering YAML configuration for class: " + yamlConfig.getClass().getName());
         registeredSettings.remove(yamlConfig);
+    }
+
+    /**
+     * Writes the default values from the specified YAML config class to its YAML config file on disk.
+     * This will automatically register the specified YAML config class for future usages.
+     * <h1>IMPORTANT: </h1>
+     * <b>If 'configClassesHaveNoArgsConstructor' is set to {@code false} in the {@link SettingsManagerConfig},
+     * this will fail silently if no matching constructor was found!
+     * If you want to call a constructor with arguments use {@link #restoreDefaultsFor(Object, Object...)}</b>
+     * @param yamlConfig defaults will be restored for the YAML config file corresponding to this YAML config class.
+     */
+    public void restoreDefaultsFor(@NotNull Object yamlConfig) {
+        log("Restoring defaults for YAML configuration class: " + yamlConfig.getClass().getName());
+        restoreDefaultsFor(yamlConfig, (Object) null);
     }
 
     /**
@@ -205,28 +301,70 @@ public class SettingsManager {
      * <b>If 'configClassesHaveNoArgsConstructor' is set to {@code false} in the {@link SettingsManagerConfig},
      * this will fail silently if no matching constructor was found!</b>
      * @param yamlConfig defaults will be restored for the YAML config file corresponding to this YAML config class.
+     * @param constructorArgs {@code null} or, if 'configClassesHaveNoArgsConstructor' is set to {@code false} in the {@link SettingsManagerConfig}, this can be used call a constructor with arguments.
      */
-    public void restoreDefaultsFor(@NotNull Object yamlConfig) throws YAJSIException {
-        if (!isRegistered(yamlConfig)) registerYAMLConfiguration(yamlConfig);
+    public void restoreDefaultsFor(@NotNull Object yamlConfig, @Nullable Object... constructorArgs) throws YAJSIException {
+        log("Restoring defaults for YAML configuration class: " + yamlConfig.getClass().getName() + " with constructor arguments.");
+        if (!isRegistered(yamlConfig)) {
+            log("Class is not registered. Registering before restoring defaults.");
+            registerYAMLConfiguration(yamlConfig);
+        }
 
         Class<?> clazz = yamlConfig.getClass();
+
+        log("Saving default values for class: " + clazz.getName());
+        save(tryToInit(clazz, constructorArgs));
+        log("Reloading configuration from file for class: " + clazz.getName());
+        reloadFromFile(yamlConfig);
+
+    }
+
+    private Object tryToInit(@NotNull Class<?> clazz) throws YAJSIException {
+        log("Initializing class: " + clazz.getName() + " without arguments.");
+        return tryToInit(clazz, (Object) null);
+    }
+
+    private boolean ensureVarNotNull(@Nullable Object... objects) {
+        if (objects == null) return false;
+        for (Object o : objects) {
+            if (o == null) return false;
+        }
+        return true;
+
+    }
+
+    private Object tryToInit(Class<?> clazz, @Nullable Object... constructorArgs) throws YAJSIException {
+        log("Initializing class: " + clazz.getName());
+        Object defaultYamlConfig = null;
         try {
-            Object defaultYamlConfig = clazz.getDeclaredConstructor().newInstance();
-            save(defaultYamlConfig);
-            reloadFromFile(yamlConfig);
+            if (ensureVarNotNull(constructorArgs)) {
+                log("Constructor arguments are not null; attempting to find matching constructor");
+                Class<?>[] constructorArgsC = new Class<?>[constructorArgs.length];
+                for (int i = 0; i < constructorArgs.length; i++) {
+                    Object o = constructorArgs[i];
+                    if (o == null) throw new NullPointerException("Arg object can't be null!");
+                    constructorArgsC[i] = o.getClass();
+                }
+                defaultYamlConfig = clazz.getDeclaredConstructor(constructorArgsC).newInstance(constructorArgs);
+                log("Successfully instantiated class with arguments");
+            } else {
+                log("Constructor arguments are null; using no-args constructor");
+                defaultYamlConfig = clazz.getDeclaredConstructor().newInstance();
+            }
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
                  NoSuchMethodException e) {
+            log("Error during instantiation: " + e.getMessage());
             if (config.configClassesHaveNoArgsConstructor) {
                 throw YAJSIException.builder()
                         .message("Restoring default values failed, because no matching constructor for class '"
-                                + yamlConfig.getClass().getName() + "' was found! "
+                                + clazz.getName() + "' was found! "
                                 + "Make sure you either provide a no-args-constructor in your YAML config classes or"
                                 + " set 'configClassesHaveNoArgsConstructor' to false in the SettingsManager config!")
                         .cause(e)
                         .build();
             }
         }
-
+        return defaultYamlConfig;
     }
 
     /**
@@ -244,36 +382,37 @@ public class SettingsManager {
      * @param overwrite if any existing YAML config file should be overwritten with the current values of the specified YAML config class.
      */
     public void registerYAMLConfiguration(@NotNull Object yamlConfig, boolean overwrite) throws YAJSIException {
-
+        log("Registering YAML configuration for: " + yamlConfig.getClass().getName() + ", overwrite: " + overwrite);
         File configFile = getConfigFile(yamlConfig);
         String configPath = configFile.getAbsolutePath();
 
         YamlConfiguration yaml = new YamlConfiguration();
         try {
             yaml.load(configFile);
+            log("Loaded YAML configuration from file: " + configPath);
         } catch (IOException e) {
+            log("Failed to load YAML config file: " + configPath);
             throw YAJSIException.builder()
                     .message("Failed to load config file '" + configPath + "'!")
                     .cause(e)
                     .build();
         } catch (InvalidConfigurationException e) {
+            log("Invalid YAML configuration: " + configPath);
             throw YAJSIException.builder()
                     .message("Invalid YAML config file '" + configPath + "'!")
                     .cause(e)
                     .build();
         }
 
-        // Create a Set<Object> to track processed objects and avoid infinite recursion
         Set<Object> processedObjects = new HashSet<>();
-
-        // Recursively process the configuration object, passing the processedObjects set
         processYAMLFields(yamlConfig, yaml, "", processedObjects, overwrite);
 
-        // Save updated configuration back to the file
         try {
             yaml.save(configFile);
+            log("Saved updated YAML configuration to file: " + configPath);
             registeredSettings.put(yamlConfig, yaml);
         } catch (IOException e) {
+            log("Failed to save updated YAML configuration: " + configPath);
             throw YAJSIException.builder()
                     .message("Failed to save updated config file '" + configPath + "'")
                     .cause(e)
@@ -297,10 +436,14 @@ public class SettingsManager {
      * @implNote Uses {@link #getConfigFile(Object)}
      */
     public File getConfigLocation(Object yamlConfig) {
+        log("Getting configuration file location for class: " + yamlConfig.getClass().getName());
         if (!isRegistered(yamlConfig)) {
+            log("Configuration class not registered: " + yamlConfig.getClass().getName() + ". Registering now.");
             registerYAMLConfiguration(yamlConfig);
         }
-        return getConfigFile(yamlConfig);
+        File configFile = getConfigFile(yamlConfig);
+        log("Configuration file location resolved to: " + configFile.getPath());
+        return configFile;
     }
 
     /**
@@ -309,10 +452,14 @@ public class SettingsManager {
      * @return the serialized YAML config for the specified YAML config class
      */
     public String getYAMLString(Object yamlConfig) {
+        log("Getting serialized YAML string for class: " + yamlConfig.getClass().getName());
         if (!isRegistered(yamlConfig)) {
+            log("Configuration class not registered: " + yamlConfig.getClass().getName() + ". Registering now.");
             registerYAMLConfiguration(yamlConfig);
         }
-        return registeredSettings.get(yamlConfig).saveToString();
+        String yamlString = registeredSettings.get(yamlConfig).saveToString();
+        log("Successfully retrieved YAML string for class: " + yamlConfig.getClass().getName());
+        return yamlString;
     }
 
     /**
@@ -321,9 +468,16 @@ public class SettingsManager {
      * @return {@code true} if the YAML config file was successfully deleted, {@code false} if no file was found, or the deletion failed
      */
     public boolean deleteYAMLConfigurationFileFor(Object yamlConfig) {
-        File f = getConfigFile(yamlConfig);
+        log("Attempting to delete configuration file for class: " + yamlConfig.getClass().getName());
+        File configFile = getConfigFile(yamlConfig);
         unregisterYAMLConfiguration(yamlConfig);
-        return f.delete();
+        boolean deleted = configFile.delete();
+        if (deleted) {
+            log("Successfully deleted configuration file: " + configFile.getPath());
+        } else {
+            log("Failed to delete configuration file: " + configFile.getPath() + ". File may not exist.");
+        }
+        return deleted;
     }
 
     /**
@@ -350,7 +504,9 @@ public class SettingsManager {
      * @return a {@link ManualAdjustmentHelper}, as described above
      */
     public ManualAdjustmentHelper makeManualAdjustmentsTo(Object yamlConfig) throws YAJSIException {
+        log("Preparing for manual adjustments to configuration for class: " + yamlConfig.getClass().getName());
         if (!isRegistered(yamlConfig)) {
+            log("Configuration class not registered: " + yamlConfig.getClass().getName() + ". Registering now.");
             registerYAMLConfiguration(yamlConfig);
         }
         YamlConfiguration yaml = registeredSettings.get(yamlConfig);
@@ -359,15 +515,20 @@ public class SettingsManager {
         return new ManualAdjustmentHelper() {
             @Override
             public YamlConfiguration getYAML() {
+                log("Providing access to YAML configuration for manual adjustments for class: " + yamlConfig.getClass().getName());
                 return yaml;
             }
 
             @Override
             public void returnResponsibility() {
+                log("Returning responsibility for YAML configuration for class: " + yamlConfig.getClass().getName());
                 try {
                     yaml.save(configFile);
+                    log("YAML configuration saved after manual adjustments for class: " + yamlConfig.getClass().getName());
                     registerYAMLConfiguration(yamlConfig);
+                    log("Configuration class re-registered after manual adjustments: " + yamlConfig.getClass().getName());
                 } catch (IOException e) {
+                    log("Failed to save YAML configuration after manual adjustments for class: " + yamlConfig.getClass().getName() + ". Exception: " + e.getMessage());
                     throw YAJSIException.builder()
                             .message("Manual adjustment failed! Error message: " + e.getMessage())
                             .cause(e)
@@ -382,10 +543,11 @@ public class SettingsManager {
      * @param yamlConfig the YAML config class to get the corresponding config file for.
      * @return the {@link File} representing this YAML config classes config file
      */
-    private @NotNull File getConfigFile(@NotNull Object yamlConfig) throws YAJSIException {
-
+    public File getConfigFile(@NotNull Object yamlConfig) throws YAJSIException {
+        log("Getting config file for class: " + yamlConfig.getClass().getName());
         Class<?> clazz = yamlConfig.getClass();
         if (!clazz.isAnnotationPresent(YAMLConfiguration.class)) {
+            log("Class is not annotated with @YAMLConfiguration");
             throw YAJSIException.builder()
                     .message("Failed to get config file for '" + yamlConfig.getClass().getName() + "'!")
                     .cause(new IllegalArgumentException("Class must be annotated with @YAMLConfiguration"))
@@ -400,29 +562,28 @@ public class SettingsManager {
 
         try {
             if (!config.exists()) {
-                try {
-                    if (!config.getParentFile().exists()) {
-                        if (!config.getParentFile().mkdirs()) {
-                            throw new IOException("Failed to create parent directory '" + config.getParentFile().getAbsolutePath() + "' for config file '" + configPath + "'!");
-                        }
-                    }
-                    if (!config.createNewFile()) {
-                        throw new IOException("File '" + configPath + "' already exists!");
-                    }
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to create config file '" + configPath + "'!", e);
+                log("Config file does not exist; creating new file: " + configPath);
+                if (!config.getParentFile().exists() && !config.getParentFile().mkdirs()) {
+                    throw new IOException("Failed to create parent directory: " + config.getParentFile().getAbsolutePath());
+                }
+                if (!config.createNewFile()) {
+                    throw new IOException("File already exists: " + configPath);
                 }
             } else if (!config.isFile()) {
+                log("Config path is not a file: " + configPath);
                 throw new RuntimeException("File '" + configPath + "' is a directory!");
             }
-        } catch (RuntimeException e) {
+        } catch (RuntimeException | IOException e) {
+            log("Failed to create or validate config file: " + configPath + ", error: " + e.getMessage());
             throw YAJSIException.builder()
                     .message("Failed to get config file for '" + yamlConfig.getClass().getName() + "'!")
                     .cause(e)
                     .build();
         }
+        log("Successfully obtained config file: " + configPath);
         return config;
     }
+
 
     /**
      * Core function which recursively analyzes the provided YAML config class and creates a corresponding YAML config.
@@ -435,75 +596,80 @@ public class SettingsManager {
      */
     private void processYAMLFields(@NotNull Object yamlConfig, @NotNull ConfigurationSection yaml, @NotNull String parentPath, @NotNull Set<Object> processedObjects, boolean overwrite) throws YAJSIException {
         if (processedObjects.contains(yamlConfig)) {
+            log("Skipping already processed object to prevent infinite recursion.");
             return; // Prevent infinite recursion
         }
         processedObjects.add(yamlConfig);
+        log("Processing YAML fields for object: " + yamlConfig.getClass().getName() + ", parentPath: '" + parentPath + "'.");
 
         Class<?> clazz = yamlConfig.getClass();
         String sectionPath = parentPath.isEmpty() ? "" : parentPath + ".";
         Set<String> yamlKeys = yaml.getKeys(false);
+        log("Found YAML keys: " + yamlKeys);
 
         for (Field field : clazz.getDeclaredFields()) {
             int modifiers = field.getModifiers();
             if (field.isAnnotationPresent(YAMLSetting.Ignore.class)
                     || Modifier.isFinal(modifiers)
-                    || Modifier.isStatic(modifiers)
-            ) continue;
+                    || Modifier.isStatic(modifiers)) {
+                log("Skipping field: " + field.getName() + " due to annotations or modifiers.");
+                continue;
+            }
             field.setAccessible(true);
+            log("Processing field: " + field.getName());
 
             try {
                 String yamlKey;
                 String fullKey;
-
                 Object fieldValue = field.get(yamlConfig);
 
                 if (field.isAnnotationPresent(YAMLSetting.class)) {
-
                     String tmp = field.getAnnotation(YAMLSetting.class).name();
-                    yamlKey = tmp.isBlank()
-                            ? field.getName()
-                            : tmp;
-
-                    fullKey =  sectionPath + yamlKey;
+                    yamlKey = tmp.isBlank() ? field.getName() : tmp;
+                    fullKey = sectionPath + yamlKey;
+                    log("Field has YAMLSetting annotation. Using key: '" + yamlKey + "'.");
 
                     String[] comments = field.getAnnotation(YAMLSetting.class).comments();
                     if (comments.length > 0) {
                         yaml.setComments(fullKey, List.of(comments));  // Set comments for the key
+                        log("Set comments for key: '" + fullKey + "'.");
                     }
                 } else {
                     yamlKey = field.getName();
+                    fullKey = sectionPath + yamlKey;
                 }
 
-                fullKey =  sectionPath + yamlKey;
-
                 if (isCustomObject(fieldValue)) {
-                    // Handle nested objects
+                    log("Detected custom object in field: " + field.getName());
                     Object nestedObject = fieldValue != null
                             ? fieldValue
                             : field.getType().getConstructor().newInstance();
                     field.set(yamlConfig, nestedObject);
-
-                    // Only recurse if the section is not already created
                     processYAMLFields(nestedObject, yaml, fullKey, processedObjects, overwrite);
                 } else if (isListOfPrimitives(fieldValue)) {
-                    // Handle lists of primitives
+                    log("Detected list of primitives in field: " + field.getName());
                     if (yaml.contains(fullKey) && !overwrite) {
                         List<?> yamlList = yaml.getList(fullKey);
                         field.set(yamlConfig, yamlList);
+                        log("Set field value from existing YAML list for key: '" + fullKey + "'.");
                     } else {
                         yaml.set(fullKey, fieldValue);
+                        log("Set YAML key: '" + fullKey + "' with field value.");
                     }
                 } else {
-                    // Handle primitive or basic types
+                    log("Detected primitive or basic type in field: " + field.getName());
                     if (yaml.contains(fullKey) && !overwrite) {
                         field.set(yamlConfig, getValue(field.getType(), yaml.get(fullKey)));
+                        log("Set field value from existing YAML value for key: '" + fullKey + "'.");
                     } else {
                         yaml.set(fullKey, fieldValue);
+                        log("Set YAML key: '" + fullKey + "' with field value.");
                     }
                 }
 
                 yamlKeys.remove(yamlKey);
             } catch (Exception e) {
+                log("Exception occurred while processing field: '" + field.getName() + "' - " + e.getMessage());
                 throw YAJSIException.builder()
                         .message("Failed to process field '" + field.getName() + "'")
                         .cause(e)
@@ -515,12 +681,19 @@ public class SettingsManager {
         for (String unusedKey : yamlKeys) {
             String unusedPath = sectionPath + unusedKey;
             switch (config.updatingBehaviour) {
-                case MARK_UNUSED -> yaml.setComments(unusedPath, List.of("This setting is currently unused"));
-                case REMOVE -> yaml.set(unusedPath, null);
-                case IGNORE -> {/* TODO log */}
+                case MARK_UNUSED -> {
+                    yaml.setComments(unusedPath, List.of(config.unusedSettingWarning));
+                    log("Marking config value: '" + unusedPath + "' as unused.");
+                }
+                case REMOVE -> {
+                    yaml.set(unusedPath, null);
+                    log("Removing unused config value: '" + unusedPath + "'.");
+                }
+                case IGNORE -> log("Ignoring unused config value: '" + unusedPath + "'.");
             }
         }
     }
+
 
 
     /**
@@ -572,7 +745,11 @@ public class SettingsManager {
      * @implNote Uses {@link #save(Object)}
      */
     public void save() {
-        registeredSettings.keySet().forEach(this::save);
+        log("Saving all registered YAML configuration classes.");
+        registeredSettings.keySet().forEach(config -> {
+            log("Saving configuration for class: " + config.getClass().getName());
+            save(config);
+        });
     }
 
     /**
@@ -580,24 +757,34 @@ public class SettingsManager {
      * @param yamlConfig the YAML config class to save
      */
     public void save(Object yamlConfig) throws YAJSIException {
+        log("Attempting to save configuration for class: " + yamlConfig.getClass().getName());
+
         if (!isRegistered(yamlConfig)) {
+            log("Configuration class not registered: " + yamlConfig.getClass().getName() + ". Registering now.");
             registerYAMLConfiguration(yamlConfig);
             return;
         }
 
         File configFile = getConfigFile(yamlConfig);
-        YamlConfiguration yaml = registeredSettings.get(yamlConfig);
+        log("Configuration file for class '" + yamlConfig.getClass().getName() + "' resolved to: " + configFile.getPath());
 
+        YamlConfiguration yaml = registeredSettings.get(yamlConfig);
         HashSet<Object> processedObjects = new HashSet<>();
+
+        log("Processing YAML fields for class: " + yamlConfig.getClass().getName());
         processYAMLFields(yamlConfig, yaml, "", processedObjects, true);
 
         try {
+            log("Saving YAML configuration to file: " + configFile.getPath());
             yaml.save(configFile);
+            log("Successfully saved YAML configuration for class: " + yamlConfig.getClass().getName());
         } catch (IOException e) {
+            log("Failed to save YAML configuration to file for class: " + yamlConfig.getClass().getName() + ". Exception: " + e.getMessage());
             throw YAJSIException.builder()
                     .message("Failed to save YAML config to file for '" + yamlConfig.getClass().getName() + "' config class!")
                     .cause(e)
                     .build();
         }
     }
+
 }
