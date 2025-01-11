@@ -330,7 +330,7 @@ public class SettingsManager {
 
     }
 
-    private Object tryToInit(Class<?> clazz, @Nullable Object... constructorArgs) throws YAJSIException {
+    private Object tryToInit(@NotNull Class<?> clazz, @Nullable Object... constructorArgs) throws YAJSIException {
         log("Initializing class: " + clazz.getName());
         Object defaultYamlConfig = null;
         try {
@@ -436,7 +436,7 @@ public class SettingsManager {
      * @return the {@link File} representing this YAML config classes config file
      * @implNote Uses {@link #getConfigFile(Object)}
      */
-    public File getConfigLocation(Object yamlConfig) {
+    public File getConfigLocation(@NotNull Object yamlConfig) {
         log("Getting configuration file location for class: " + yamlConfig.getClass().getName());
         if (!isRegistered(yamlConfig)) {
             log("Configuration class not registered: " + yamlConfig.getClass().getName() + ". Registering now.");
@@ -452,7 +452,7 @@ public class SettingsManager {
      * @param yamlConfig the YAML config class to get the YAML config for
      * @return the serialized YAML config for the specified YAML config class
      */
-    public String getYAMLString(Object yamlConfig) {
+    public String getYAMLString(@NotNull Object yamlConfig) {
         log("Getting serialized YAML string for class: " + yamlConfig.getClass().getName());
         if (!isRegistered(yamlConfig)) {
             log("Configuration class not registered: " + yamlConfig.getClass().getName() + ". Registering now.");
@@ -468,7 +468,7 @@ public class SettingsManager {
      * @param yamlConfig the YAML config file to delete the YAML config file for.
      * @return {@code true} if the YAML config file was successfully deleted, {@code false} if no file was found, or the deletion failed
      */
-    public boolean deleteYAMLConfigurationFileFor(Object yamlConfig) {
+    public boolean deleteYAMLConfigurationFileFor(@NotNull Object yamlConfig) {
         log("Attempting to delete configuration file for class: " + yamlConfig.getClass().getName());
         File configFile = getConfigFile(yamlConfig);
         unregisterYAMLConfiguration(yamlConfig);
@@ -504,7 +504,7 @@ public class SettingsManager {
      * @param yamlConfig the YAML config class you want to manually modify the corresponding YAML config for
      * @return a {@link ManualAdjustmentHelper}, as described above
      */
-    public ManualAdjustmentHelper makeManualAdjustmentsTo(Object yamlConfig) throws YAJSIException {
+    public ManualAdjustmentHelper makeManualAdjustmentsTo(@NotNull Object yamlConfig) throws YAJSIException {
         log("Preparing for manual adjustments to configuration for class: " + yamlConfig.getClass().getName());
         if (!isRegistered(yamlConfig)) {
             log("Configuration class not registered: " + yamlConfig.getClass().getName() + ". Registering now.");
@@ -757,7 +757,7 @@ public class SettingsManager {
      * Saves all values from the specified YAML config class to the classes corresponding YAML config file.
      * @param yamlConfig the YAML config class to save
      */
-    public void save(Object yamlConfig) throws YAJSIException {
+    public void save(@NotNull Object yamlConfig) throws YAJSIException {
         log("Attempting to save configuration for class: " + yamlConfig.getClass().getName());
 
         if (!isRegistered(yamlConfig)) {
