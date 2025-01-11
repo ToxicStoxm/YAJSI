@@ -186,7 +186,7 @@ public class SettingsManager {
      * From this point onward by calling {@link #save(Object)} with this YAML config class,
      * will save its values to the created / loaded config.
      * @param yamlConfig the YAML config class to register
-     * @implNote Uses {@link #registerYAMLConfiguration(Object, boolean)}, overwrite = {@code false}
+     * @implNote Uses {@link #registerYAMLConfiguration(Object, boolean, boolean)}, overwrite = {@code false}, readonly = {@code false}
      * @see #unregisterYAMLConfiguration(Object)
      * @see #registerYAMLConfiguration(Object, boolean)
      * @see #restoreDefaultsFor(Object)
@@ -194,12 +194,38 @@ public class SettingsManager {
      */
     public void registerYAMLConfiguration(@NotNull Object yamlConfig) {
         log("Registering YAML configuration for class: " + yamlConfig.getClass().getName());
-        registerYAMLConfiguration(yamlConfig, false);
+        registerYAMLConfiguration(yamlConfig, false, false);
+    }
+
+    /**
+     * Registers a YAML config class in the SettingsManager's system.
+     * <h4>Cases:</h4>
+     * <ul>
+     *     <li><b>Config file exists</b>: If an existing config file for this class is found, values will be loaded from it.
+     *         Missing values will be added to the config file by getting the defaults from the config class. </li>
+     *     <li><b>No config file exists</b>: If no existing config file for this class is found, a new one will be created
+     *         in the specified config path (default path: {@linkplain SettingsManagerConfig#configDirectory})
+     *         and populated with the default values from yamlConfig.</b>
+     *     </li>
+     * </ul>
+     * From this point onward by calling {@link #save(Object)} with this YAML config class,
+     * will save its values to the created / loaded config.
+     * @param yamlConfig the YAML config class to register
+     * @param readOnly if the YAML config is on a read-only file system and should therefore not be saved
+     * @implNote Uses {@link #registerYAMLConfiguration(Object, boolean, boolean)}, overwrite = {@code false}
+     * @see #unregisterYAMLConfiguration(Object)
+     * @see #registerYAMLConfiguration(Object, boolean)
+     * @see #restoreDefaultsFor(Object)
+     * @see #reloadFromFile(Object)
+     */
+    public void registerYAMLConfiguration(@NotNull Object yamlConfig, boolean readOnly) {
+        log("Registering YAML configuration for class: " + yamlConfig.getClass().getName());
+        registerYAMLConfiguration(yamlConfig, false, readOnly);
     }
 
     /**
      * Tries to automatically detect classes annotated with {@link YAMLConfiguration} and automatically registers them
-     * using {@link #registerYAMLConfiguration(Object)}
+     * using {@link #registerYAMLConfiguration(Object, boolean)}
      * <h1>IMPORTANT: </h1>
      * <b>If 'configClassesHaveNoArgsConstructor' is set to {@code false} in the {@link SettingsManagerConfig},
      * this will fail silently if no matching constructor was found!
@@ -212,7 +238,7 @@ public class SettingsManager {
 
     /**
      * Tries to automatically detect classes annotated with {@link YAMLConfiguration} and automatically registers them
-     * using {@link #registerYAMLConfiguration(Object, boolean)}
+     * using {@link #registerYAMLConfiguration(Object, boolean, boolean)}
      * <h1>IMPORTANT: </h1>
      * <b>If 'configClassesHaveNoArgsConstructor' is set to {@code false} in the {@link SettingsManagerConfig},
      * this will fail silently if no matching constructor was found!
@@ -232,10 +258,10 @@ public class SettingsManager {
                 try {
                     if (constructorArgs != null) {
                         log("Initializing class with arguments: " + loadedClass.getName());
-                        registerYAMLConfiguration(tryToInit(loadedClass, constructorArgs), overwrite);
+                        registerYAMLConfiguration(tryToInit(loadedClass, constructorArgs), overwrite, false);
                     } else {
                         log("Initializing class without arguments: " + loadedClass.getName());
-                        registerYAMLConfiguration(tryToInit(loadedClass), overwrite);
+                        registerYAMLConfiguration(tryToInit(loadedClass), overwrite, false);
                     }
                 } catch (Exception e) {
                     log("Failed to auto-register class: " + loadedClass.getName() + " due to: " + e.getMessage());
@@ -304,7 +330,7 @@ public class SettingsManager {
         log("Restoring defaults for YAML configuration class: " + yamlConfig.getClass().getName() + " with constructor arguments.");
         if (!isRegistered(yamlConfig)) {
             log("Class is not registered. Registering before restoring defaults.");
-            registerYAMLConfiguration(yamlConfig);
+            registerYAMLConfiguration(yamlConfig, false);
         }
 
         Class<?> clazz = yamlConfig.getClass();
@@ -382,7 +408,7 @@ public class SettingsManager {
      * @param yamlConfig the YAML config class to register
      * @param overwrite if any existing YAML config file should be overwritten with the current values of the specified YAML config class.
      */
-    public void registerYAMLConfiguration(@NotNull Object yamlConfig, boolean overwrite) throws YAJSIException {
+    public void registerYAMLConfiguration(@NotNull Object yamlConfig, boolean overwrite, boolean readOnly) throws YAJSIException {
         log("Registering YAML configuration for: " + yamlConfig.getClass().getName() + ", overwrite: " + overwrite);
         File configFile = getConfigFile(yamlConfig);
         String configPath = configFile.getAbsolutePath();
@@ -409,8 +435,10 @@ public class SettingsManager {
         processYAMLFields(yamlConfig, yaml, "", processedObjects, overwrite);
 
         try {
-            yaml.save(configFile);
-            log("Saved updated YAML configuration to file: " + configPath);
+            if (!readOnly) {
+                yaml.save(configFile);
+                log("Saved updated YAML configuration to file: " + configPath);
+            }
             registeredSettings.put(yamlConfig, yaml);
         } catch (IOException e) {
             log("Failed to save updated YAML configuration: " + configPath);
@@ -427,7 +455,7 @@ public class SettingsManager {
      * @param yamlConfig the YAML config class to reload the values for
      */
     public void reloadFromFile(Object yamlConfig) {
-        registerYAMLConfiguration(yamlConfig, false);
+        registerYAMLConfiguration(yamlConfig, false, true);
     }
 
     /**
@@ -440,7 +468,7 @@ public class SettingsManager {
         log("Getting configuration file location for class: " + yamlConfig.getClass().getName());
         if (!isRegistered(yamlConfig)) {
             log("Configuration class not registered: " + yamlConfig.getClass().getName() + ". Registering now.");
-            registerYAMLConfiguration(yamlConfig);
+            registerYAMLConfiguration(yamlConfig, false);
         }
         File configFile = getConfigFile(yamlConfig);
         log("Configuration file location resolved to: " + configFile.getPath());
@@ -456,7 +484,7 @@ public class SettingsManager {
         log("Getting serialized YAML string for class: " + yamlConfig.getClass().getName());
         if (!isRegistered(yamlConfig)) {
             log("Configuration class not registered: " + yamlConfig.getClass().getName() + ". Registering now.");
-            registerYAMLConfiguration(yamlConfig);
+            registerYAMLConfiguration(yamlConfig, false);
         }
         String yamlString = registeredSettings.get(yamlConfig).saveToString();
         log("Successfully retrieved YAML string for class: " + yamlConfig.getClass().getName());
@@ -508,7 +536,7 @@ public class SettingsManager {
         log("Preparing for manual adjustments to configuration for class: " + yamlConfig.getClass().getName());
         if (!isRegistered(yamlConfig)) {
             log("Configuration class not registered: " + yamlConfig.getClass().getName() + ". Registering now.");
-            registerYAMLConfiguration(yamlConfig);
+            registerYAMLConfiguration(yamlConfig, false);
         }
         YamlConfiguration yaml = registeredSettings.get(yamlConfig);
         File configFile = getConfigFile(yamlConfig);
@@ -526,7 +554,7 @@ public class SettingsManager {
                 try {
                     yaml.save(configFile);
                     log("YAML configuration saved after manual adjustments for class: " + yamlConfig.getClass().getName());
-                    registerYAMLConfiguration(yamlConfig);
+                    registerYAMLConfiguration(yamlConfig, false);
                     log("Configuration class re-registered after manual adjustments: " + yamlConfig.getClass().getName());
                 } catch (IOException e) {
                     log("Failed to save YAML configuration after manual adjustments for class: " + yamlConfig.getClass().getName() + ". Exception: " + e.getMessage());
@@ -762,7 +790,7 @@ public class SettingsManager {
 
         if (!isRegistered(yamlConfig)) {
             log("Configuration class not registered: " + yamlConfig.getClass().getName() + ". Registering now.");
-            registerYAMLConfiguration(yamlConfig);
+            registerYAMLConfiguration(yamlConfig, false);
             return;
         }
 

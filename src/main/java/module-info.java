@@ -4,6 +4,7 @@ module YAJSI {
     requires org.yaml.snakeyaml;
     requires io.github.classgraph;
     requires java.logging;
+    requires jdk.compiler;
 
     exports com.toxicstoxm.YAJSI.api.file;
     exports com.toxicstoxm.YAJSI.api.settings;
