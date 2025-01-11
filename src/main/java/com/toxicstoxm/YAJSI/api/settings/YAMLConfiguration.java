@@ -6,12 +6,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
-public @interface YAMLSetting {
+@Target(ElementType.TYPE)
+public @interface YAMLConfiguration {
     String name() default "";
-    String[] comments() default {};
 
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.FIELD)
-    @interface Ignore {}
+    String filePath() default "";
 }
