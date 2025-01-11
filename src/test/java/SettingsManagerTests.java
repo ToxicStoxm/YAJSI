@@ -250,8 +250,8 @@ public class SettingsManagerTests {
     public void testSettingsManagerAPI() {
         settingsManager = SettingsManager.getInstance();
 
-        settingsManager.registerYAMLConfiguration(this, true);
-        /*settingsManager.restoreDefaultsFor(this);
+        settingsManager.registerYAMLConfiguration(this);
+        settingsManager.restoreDefaultsFor(this);
         settingsManager.unregisterYAMLConfiguration(this);
         ManualAdjustmentHelper helper = settingsManager.makeManualAdjustmentsTo(this);
 
@@ -270,6 +270,6 @@ public class SettingsManagerTests {
 
        if (!configFile.delete()) {
             throw new RuntimeException("Failed to cleanup test config file!");
-        }*/
+        }
     }
 }
