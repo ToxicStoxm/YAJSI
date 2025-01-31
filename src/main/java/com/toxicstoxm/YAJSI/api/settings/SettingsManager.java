@@ -583,9 +583,9 @@ public class SettingsManager {
                     .build();
         }
 
-        String configPath = !clazz.getAnnotation(YAMLConfiguration.class).filePath().isBlank()
+        String configPath = (!clazz.getAnnotation(YAMLConfiguration.class).filePath().isBlank()
                 ? clazz.getAnnotation(YAMLConfiguration.class).filePath()
-                : config.configDirectory + clazz.getSimpleName();
+                : config.configDirectory + clazz.getSimpleName()) + ".yaml";
 
         File config = new File(configPath);
 
@@ -660,6 +660,7 @@ public class SettingsManager {
 
                     String[] comments = field.getAnnotation(YAMLSetting.class).comments();
                     if (comments.length > 0) {
+                        yaml.setComments(fullKey, null);
                         yaml.setComments(fullKey, List.of(comments));  // Set comments for the key
                         log("Set comments for key: '" + fullKey + "'.");
                     }
@@ -709,16 +710,18 @@ public class SettingsManager {
         // Handle unused keys and add comments to unused keys
         for (String unusedKey : yamlKeys) {
             String unusedPath = sectionPath + unusedKey;
-            switch (config.updatingBehaviour) {
-                case MARK_UNUSED -> {
-                    yaml.setComments(unusedPath, List.of(config.unusedSettingWarning));
-                    log("Marking config value: '" + unusedPath + "' as unused.");
+            if (yaml.contains(unusedPath)) {
+                switch (config.updatingBehaviour) {
+                    case MARK_UNUSED -> {
+                        yaml.setComments(unusedPath, List.of(config.unusedSettingWarning));
+                        log("Marking config value: '" + unusedPath + "' as unused.");
+                    }
+                    case REMOVE -> {
+                        yaml.set(unusedPath, null);
+                        log("Removing unused config value: '" + unusedPath + "'.");
+                    }
+                    case IGNORE -> log("Ignoring unused config value: '" + unusedPath + "'.");
                 }
-                case REMOVE -> {
-                    yaml.set(unusedPath, null);
-                    log("Removing unused config value: '" + unusedPath + "'.");
-                }
-                case IGNORE -> log("Ignoring unused config value: '" + unusedPath + "'.");
             }
         }
     }
