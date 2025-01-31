@@ -8,6 +8,8 @@ import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ScanResult;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,11 +22,11 @@ import java.util.*;
  * Singleton class for managing your configurations using the provided functions.
  * @see #registerYAMLConfiguration(Object)
  * @see #unregisterYAMLConfiguration(Object)
- * @see #configure(SettingsManagerConfig)
+ * @see #configure()
  * @see #save()
  * @author ToxicStoxm
  */
-public class SettingsManager {
+public class SettingsManager implements SettingsManagerSettings {
 
     /**
      * Singleton instance of this class.
@@ -91,6 +93,8 @@ public class SettingsManager {
      * Configuration class for {@link SettingsManager}.
      */
     @Builder
+    @Setter
+    @Getter
     public static class SettingsManagerConfig {
 
         @Builder.Default
@@ -129,13 +133,17 @@ public class SettingsManager {
         }
     }
 
+    public static SettingsManagerSettings configure() {
+        return getInstance();
+    }
+
     /**
      * Fine tune the SettingsManagers behavior. <br>
      * If a custom logger implementation was provided, this also tries to log all queued log messages using it,
      * if the log message queue is enabled.
      * @param customConfig custom config, which will be used going forward.
      */
-    public void configure(@NotNull SettingsManagerConfig customConfig) {
+    public void setConfig(@NotNull SettingsManagerConfig customConfig) {
         log("Configuring SettingsManager with custom settings.");
         this.config = customConfig;
 
@@ -146,6 +154,54 @@ public class SettingsManager {
                 customConfig.logger.log(logMessageQueue.poll());
             }
         }
+    }
+
+    @Override
+    public SettingsManagerSettings setConfigDirectory(String configDirectory) {
+        config.setConfigDirectory(configDirectory);
+        return this;
+    }
+
+    @Override
+    public SettingsManagerSettings setAppName(String appName) {
+        config.setAppName(appName);
+        return this;
+    }
+
+    @Override
+    public SettingsManagerSettings setUpdatingBehaviour(YAMLUpdatingBehaviour updatingBehaviour) {
+        config.setUpdatingBehaviour(updatingBehaviour);
+        return this;
+    }
+
+    @Override
+    public SettingsManagerSettings setLogger(Logger logger) {
+        config.setLogger(logger);
+        return this;
+    }
+
+    @Override
+    public SettingsManagerSettings setEnableLogBuffer(boolean enableLogBuffer) {
+        config.setEnableLogBuffer(enableLogBuffer);
+        return this;
+    }
+
+    @Override
+    public SettingsManagerSettings setLogMessageBufferSize(int logMessageBufferSize) {
+        config.setLogMessageBufferSize(logMessageBufferSize);
+        return this;
+    }
+
+    @Override
+    public SettingsManagerSettings setConfigClassesHaveNoArgsConstructor(boolean configClassesHaveNoArgsConstructor) {
+        config.setConfigClassesHaveNoArgsConstructor(configClassesHaveNoArgsConstructor);
+        return this;
+    }
+
+    @Override
+    public SettingsManagerSettings setUnusedSettingWarning(String unusedSettingWarning) {
+        config.setUnusedSettingWarning(unusedSettingWarning);
+        return this;
     }
 
     private void log(String message) {
