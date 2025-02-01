@@ -90,6 +90,13 @@ public class SettingsManager implements SettingsManagerSettings {
     private SettingsManagerConfig config = SettingsManagerConfig.builder().build();
 
     /**
+     * Returns the config directory used by YAJSI.
+     */
+    public String getConfigDirectory() {
+        return config.getConfigDirectory();
+    }
+
+    /**
      * Configuration class for {@link SettingsManager}.
      */
     @Builder
