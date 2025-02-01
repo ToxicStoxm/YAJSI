@@ -646,9 +646,16 @@ public class SettingsManager implements SettingsManagerSettings {
                     .build();
         }
 
-        String configPath = (!clazz.getAnnotation(YAMLConfiguration.class).filePath().isBlank()
-                ? clazz.getAnnotation(YAMLConfiguration.class).filePath()
-                : config.configDirectory + clazz.getSimpleName()) + ".yaml";
+        String customFilePath = clazz.getAnnotation(YAMLConfiguration.class).filePath();
+        String customName = clazz.getAnnotation(YAMLConfiguration.class).name();
+
+        String configPath = (customFilePath.isBlank()
+                ? config.getConfigDirectory() + "/"
+                : customFilePath)
+                + (customName.isBlank()
+                ? clazz.getSimpleName() + ".yaml"
+                : customName
+                );
 
         File config = new File(configPath);
 
