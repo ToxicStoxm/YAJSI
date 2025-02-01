@@ -1,4 +1,17 @@
 # YAJSI (Yet another Java settings implementation)
-### Documentation
- - Example: https://github.com/ToxicStoxm/YAJSI-Example __(Still on version 1.6.4)__
-#### More indepth documentation will follow soon!
+
+Available at [Maven Central](https://central.sonatype.com/artifact/com.toxicstoxm.YAJSI/YAJSI)
+
+### Maven
+```xml
+<dependency>
+    <groupId>com.toxicstoxm.YAJSI</groupId>
+    <artifactId>YAJSI</artifactId>
+    <version>[Latest Release Version]</version>
+</dependency>
+```
+
+### Gradle
+```groovy
+implementation 'com.toxicstoxm.YAJSI:YAJSI:[Latest Release Version]'
+```
