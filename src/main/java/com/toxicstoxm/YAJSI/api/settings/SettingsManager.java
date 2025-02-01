@@ -7,6 +7,7 @@ import com.toxicstoxm.YAJSI.api.yaml.InvalidConfigurationException;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ScanResult;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -100,7 +101,7 @@ public class SettingsManager implements SettingsManagerSettings {
      * Configuration class for {@link SettingsManager}.
      */
     @Builder
-    @Setter
+    @Setter(onParam_ = @NotNull)
     @Getter
     public static class SettingsManagerConfig {
 
@@ -114,7 +115,13 @@ public class SettingsManager implements SettingsManagerSettings {
         public YAMLUpdatingBehaviour updatingBehaviour = YAMLUpdatingBehaviour.MARK_UNUSED;
 
         @Builder.Default
+        @Setter(AccessLevel.NONE)
         public Logger logger = defaultLogger;
+
+        public void setLogger(Logger logger) {
+            this.logger = logger;
+            getInstance().checkLogFlush();
+        }
 
         @Builder.Default
         public boolean enableLogBuffer = true;
@@ -154,11 +161,15 @@ public class SettingsManager implements SettingsManagerSettings {
         log("Configuring SettingsManager with custom settings.");
         this.config = customConfig;
 
+        checkLogFlush();
+    }
+
+    public void checkLogFlush() {
         // If a custom logger implementation was provided, try to log all queued log messages using it.
-        if (customConfig.logger != defaultLogger && config.enableLogBuffer) {
+        if (config.logger != defaultLogger && config.enableLogBuffer) {
             log("Custom logger provided. Flushing log message queue.");
             while (!logMessageQueue.isEmpty()) {
-                customConfig.logger.log(logMessageQueue.poll());
+                config.logger.log(logMessageQueue.poll());
             }
         }
     }
