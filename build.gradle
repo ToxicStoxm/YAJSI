@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.toxicstoxm'
-version = '2.1.1'
+version = '2.1.2'
 
 repositories {
     mavenCentral()
@@ -73,4 +73,8 @@ mavenPublishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.annotationProcessorPath = configurations.annotationProcessor
+}
+
+javadoc {
+    failOnError = false
 }
