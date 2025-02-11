@@ -6,6 +6,7 @@ import com.toxicstoxm.YAJSI.api.yaml.InvalidConfigurationException;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -293,6 +294,18 @@ public class SettingsManagerTests {
         }
 
         if (configTest.active || configTest.value != 5000 || !configTest.heyString.equals("NOOO")) {
+            throw new RuntimeException("Output is incorrect!");
+        }
+
+        StringConfigTest streamConfigTest = new StringConfigTest();
+
+        try {
+            settingsManager.loadFromFileStream(streamConfigTest, getClass().getClassLoader().getResourceAsStream("test.yaml"));
+        } catch (IOException | InvalidConfigurationException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (streamConfigTest.active || streamConfigTest.value != 500056 || !streamConfigTest.heyString.equals("MOOO")) {
             throw new RuntimeException("Output is incorrect!");
         }
 
