@@ -2,6 +2,7 @@ import com.toxicstoxm.YAJSI.api.settings.ManualAdjustmentHelper;
 import com.toxicstoxm.YAJSI.api.settings.SettingsManager;
 import com.toxicstoxm.YAJSI.api.settings.YAMLConfiguration;
 import com.toxicstoxm.YAJSI.api.settings.YAMLSetting;
+import com.toxicstoxm.YAJSI.api.yaml.InvalidConfigurationException;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -246,6 +247,14 @@ public class SettingsManagerTests {
 
     public SettingsManagerTests() {}
 
+    @YAMLConfiguration
+    public static class StringConfigTest {
+        @YAMLSetting(name = "Hey-String")
+        public String heyString = "Hello";
+        public int value = 50;
+        public boolean active = false;
+    }
+
     @Test
     public void testSettingsManagerAPI() {
         settingsManager = SettingsManager.getInstance();
@@ -268,8 +277,24 @@ public class SettingsManagerTests {
             throw new RuntimeException("Output is incorrect!");
         }
 
-       if (!configFile.delete()) {
+        if (!configFile.delete()) {
             throw new RuntimeException("Failed to cleanup test config file!");
         }
+
+        StringConfigTest configTest = new StringConfigTest();
+
+        try {
+            settingsManager.loadFromYAMLString(configTest, """
+                    Hey-String: "NOOO"
+                    value: 5000
+                    """);
+        } catch (InvalidConfigurationException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (configTest.active || configTest.value != 5000 || !configTest.heyString.equals("NOOO")) {
+            throw new RuntimeException("Output is incorrect!");
+        }
+
     }
 }
