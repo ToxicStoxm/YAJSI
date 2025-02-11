@@ -14,8 +14,7 @@ import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -474,6 +473,29 @@ public class SettingsManager implements SettingsManagerSettings {
      */
     public boolean isRegistered(Object yamlConfig) {
         return registeredSettings.containsKey(yamlConfig);
+    }
+
+    /**
+     * Loads configuration values from a YAML file input stream and applies them to the provided YAML config object.
+     * <p>
+     * This method reads YAML data from an {@link InputStream}, parses it, and maps the configuration values
+     * onto the specified {@code yamlConfig} object.
+     * </p>
+     *
+     * @param yamlConfig The object into which the YAML values will be loaded.
+     * @param fileInputStream The input stream containing YAML configuration data.
+     * @throws IOException If an error occurs while reading from the input stream.
+     * @throws InvalidConfigurationException If the YAML content is malformed or cannot be parsed.
+     */
+    public void loadFromFileStream(@NotNull Object yamlConfig, InputStream fileInputStream)
+            throws IOException, InvalidConfigurationException {
+        YamlConfiguration yamlConfiguration = new YamlConfiguration();
+
+        try (Reader reader = new InputStreamReader(fileInputStream)) {
+            yamlConfiguration.load(reader);
+        }
+
+        loadFromYAMLConfiguration(yamlConfig, yamlConfiguration);
     }
 
     /**
