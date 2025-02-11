@@ -260,7 +260,7 @@ public class SettingsManager implements SettingsManagerSettings {
      * From this point onward by calling {@link #save(Object)} with this YAML config class,
      * will save its values to the created / loaded config.
      * @param yamlConfig the YAML config class to register
-     * @implNote Uses {@link #registerYAMLConfiguration(Object, boolean, boolean)}, overwrite = {@code false}, readonly = {@code false}
+     * @implNote Uses {@link #registerYAMLConfiguration(Object, boolean)}, overwrite = {@code false}
      * @see #unregisterYAMLConfiguration(Object)
      * @see #registerYAMLConfiguration(Object, boolean)
      * @see #restoreDefaultsFor(Object)
@@ -268,7 +268,7 @@ public class SettingsManager implements SettingsManagerSettings {
      */
     public void registerYAMLConfiguration(@NotNull Object yamlConfig) {
         log("Registering YAML configuration for class: " + yamlConfig.getClass().getName());
-        registerYAMLConfiguration(yamlConfig, false, false);
+        registerYAMLConfiguration(yamlConfig, false);
     }
 
     /**
@@ -285,16 +285,15 @@ public class SettingsManager implements SettingsManagerSettings {
      * From this point onward by calling {@link #save(Object)} with this YAML config class,
      * will save its values to the created / loaded config.
      * @param yamlConfig the YAML config class to register
-     * @param readOnly if the YAML config is on a read-only file system and should therefore not be saved
-     * @implNote Uses {@link #registerYAMLConfiguration(Object, boolean, boolean)}, overwrite = {@code false}
+     * @implNote Uses {@link #registerYAMLConfiguration(Object, boolean, YamlConfiguration)}, overwrite = {@code false}
      * @see #unregisterYAMLConfiguration(Object)
      * @see #registerYAMLConfiguration(Object, boolean)
      * @see #restoreDefaultsFor(Object)
      * @see #reloadFromFile(Object)
      */
-    public void registerYAMLConfiguration(@NotNull Object yamlConfig, boolean readOnly) {
+    public void registerYAMLConfiguration(@NotNull Object yamlConfig, boolean overwrite) {
         log("Registering YAML configuration for class: " + yamlConfig.getClass().getName());
-        registerYAMLConfiguration(yamlConfig, false, readOnly);
+        registerYAMLConfiguration(yamlConfig, overwrite, null);
     }
 
     /**
@@ -312,7 +311,7 @@ public class SettingsManager implements SettingsManagerSettings {
 
     /**
      * Tries to automatically detect classes annotated with {@link YAMLConfiguration} and automatically registers them
-     * using {@link #registerYAMLConfiguration(Object, boolean, boolean)}
+     * using {@link #registerYAMLConfiguration(Object, boolean)}
      * <h1>IMPORTANT: </h1>
      * <b>If 'configClassesHaveNoArgsConstructor' is set to {@code false} in the {@link SettingsManagerConfig},
      * this will fail silently if no matching constructor was found!
@@ -332,10 +331,10 @@ public class SettingsManager implements SettingsManagerSettings {
                 try {
                     if (constructorArgs != null) {
                         log("Initializing class with arguments: " + loadedClass.getName());
-                        registerYAMLConfiguration(tryToInit(loadedClass, constructorArgs), overwrite, false);
+                        registerYAMLConfiguration(tryToInit(loadedClass, constructorArgs), overwrite);
                     } else {
                         log("Initializing class without arguments: " + loadedClass.getName());
-                        registerYAMLConfiguration(tryToInit(loadedClass), overwrite, false);
+                        registerYAMLConfiguration(tryToInit(loadedClass), overwrite);
                     }
                 } catch (Exception e) {
                     log("Failed to auto-register class: " + loadedClass.getName() + " due to: " + e.getMessage());
@@ -478,48 +477,90 @@ public class SettingsManager implements SettingsManagerSettings {
     }
 
     /**
+     * Loads configuration values from a YAML string and applies them to the provided YAML config object.
+     *
+     * @param yamlConfig The object into which the YAML values will be loaded.
+     * @param yamlString The YAML string containing configuration data.
+     * @throws InvalidConfigurationException If the provided YAML string is malformed or cannot be parsed.
+     */
+    public void loadFromYAMLString(@NotNull Object yamlConfig, String yamlString) throws InvalidConfigurationException {
+        YamlConfiguration yamlConfiguration = new YamlConfiguration();
+        yamlConfiguration.loadFromString(yamlString);
+        loadFromYAMLConfiguration(yamlConfig, yamlConfiguration);
+    }
+
+    /**
+     * Loads configuration values from a YAML file and applies them to the provided YAML config object.
+     *
+     * @param yamlConfig The object into which the YAML values will be loaded.
+     * @param file The YAML file containing configuration data.
+     */
+    public void loadFromYAMLConfigFile(@NotNull Object yamlConfig, File file) {
+        YamlConfiguration yamlConfiguration = YamlConfiguration.loadConfiguration(file);
+        loadFromYAMLConfiguration(yamlConfig, yamlConfiguration);
+    }
+
+    /**
+     * Registers and loads a YAML configuration object into the settings system.
+     *
+     * @param yamlConfig The object into which the YAML values will be loaded.
+     * @param config The parsed YAML configuration object containing the settings to be applied.
+     */
+    public void loadFromYAMLConfiguration(@NotNull Object yamlConfig, YamlConfiguration config) {
+        registerYAMLConfiguration(yamlConfig, false, config);
+    }
+
+    /**
      * Registers the provided YAML config class in the SettingsManager's system.
      * @param yamlConfig the YAML config class to register
      * @param overwrite if any existing YAML config file should be overwritten with the current values of the specified YAML config class.
      */
-    public void registerYAMLConfiguration(@NotNull Object yamlConfig, boolean overwrite, boolean readOnly) throws YAJSIException {
-        log("Registering YAML configuration for: " + yamlConfig.getClass().getName() + ", overwrite: " + overwrite);
-        File configFile = getConfigFile(yamlConfig);
-        String configPath = configFile.getAbsolutePath();
+    public void registerYAMLConfiguration(@NotNull Object yamlConfig, boolean overwrite, YamlConfiguration config) throws YAJSIException {
+        YamlConfiguration yaml;
+        File configFile = null;
+        String configPath = "";
 
-        YamlConfiguration yaml = new YamlConfiguration();
-        try {
-            yaml.load(configFile);
-            log("Loaded YAML configuration from file: " + configPath);
-        } catch (IOException e) {
-            log("Failed to load YAML config file: " + configPath);
-            throw YAJSIException.builder()
-                    .message("Failed to load config file '" + configPath + "'!")
-                    .cause(e)
-                    .build();
-        } catch (InvalidConfigurationException e) {
-            log("Invalid YAML configuration: " + configPath);
-            throw YAJSIException.builder()
-                    .message("Invalid YAML config file '" + configPath + "'!")
-                    .cause(e)
-                    .build();
+        if (config == null) {
+            log("Registering YAML configuration for: " + yamlConfig.getClass().getName() + ", overwrite: " + overwrite);
+            configFile = getConfigFile(yamlConfig);
+            configPath = configFile.getAbsolutePath();
+            yaml = new YamlConfiguration();
+
+            try {
+                yaml.load(configFile);
+                log("Loaded YAML configuration from file: " + configPath);
+            } catch (IOException e) {
+                log("Failed to load YAML config file: " + configPath);
+                throw YAJSIException.builder()
+                        .message("Failed to load config file '" + configPath + "'!")
+                        .cause(e)
+                        .build();
+            } catch (InvalidConfigurationException e) {
+                log("Invalid YAML configuration: " + configPath);
+                throw YAJSIException.builder()
+                        .message("Invalid YAML config file '" + configPath + "'!")
+                        .cause(e)
+                        .build();
+            }
+        } else {
+            yaml = config;
         }
 
         Set<Object> processedObjects = new HashSet<>();
         processYAMLFields(yamlConfig, yaml, "", processedObjects, overwrite);
 
-        try {
-            if (!readOnly) {
+        if (config == null) {
+            try {
                 yaml.save(configFile);
                 log("Saved updated YAML configuration to file: " + configPath);
+                registeredSettings.put(yamlConfig, yaml);
+            } catch (IOException e) {
+                log("Failed to save updated YAML configuration: " + configPath);
+                throw YAJSIException.builder()
+                        .message("Failed to save updated config file '" + configPath + "'")
+                        .cause(e)
+                        .build();
             }
-            registeredSettings.put(yamlConfig, yaml);
-        } catch (IOException e) {
-            log("Failed to save updated YAML configuration: " + configPath);
-            throw YAJSIException.builder()
-                    .message("Failed to save updated config file '" + configPath + "'")
-                    .cause(e)
-                    .build();
         }
     }
 
@@ -529,7 +570,7 @@ public class SettingsManager implements SettingsManagerSettings {
      * @param yamlConfig the YAML config class to reload the values for
      */
     public void reloadFromFile(Object yamlConfig) {
-        registerYAMLConfiguration(yamlConfig, false, true);
+        registerYAMLConfiguration(yamlConfig, false);
     }
 
     /**
