@@ -1,39 +1,39 @@
 import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
-    id 'java-library'
-    id "com.vanniktech.maven.publish" version "0.31.0"
+    id("java-library")
+    id("com.vanniktech.maven.publish") version "0.31.0"
 }
 
-group = 'com.toxicstoxm'
-version = '2.1.4'
+group = "com.toxicstoxm"
+version = "2.1.5"
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation 'org.jetbrains:annotations:26.0.2'
-    annotationProcessor 'org.jetbrains:annotations:26.0.2'
+    implementation("org.jetbrains:annotations:26.0.2")
+    annotationProcessor("org.jetbrains:annotations:26.0.2")
 
-    implementation 'org.projectlombok:lombok:1.18.38'
-    annotationProcessor 'org.projectlombok:lombok:1.18.38'
+    implementation("org.projectlombok:lombok:1.18.38")
+    annotationProcessor("org.projectlombok:lombok:1.18.38")
 
-    implementation 'org.yaml:snakeyaml:2.4'
+    implementation("org.yaml:snakeyaml:2.4")
 
-    implementation 'io.github.classgraph:classgraph:4.8.179'
+    implementation("io.github.classgraph:classgraph:4.8.179")
 
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.13.0-M2'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.13.0-M2'
+    testImplementation("org.junit.jupiter:junit-jupiter:5.13.0-M2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.13.0-M2")
 }
 
-test {
+tasks.test {
     useJUnitPlatform()
 }
 
 tasks.jar {
     manifest {
-        attributes['Main-Class'] = 'com.toxicstoxm.YAJSI.YAJSISettingsManager'
+        attributes["Main-Class"] = "com.toxicstoxm.YAJSI.YAJSISettingsManager"
     }
 }
 
@@ -42,7 +42,7 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates("com.toxicstoxm.YAJSI", "YAJSI", version)
+    coordinates("com.toxicstoxm.YAJSI", "YAJSI", version as String?)
 
     pom {
         name = "YAJSI"
@@ -71,10 +71,10 @@ mavenPublishing {
     }
 }
 
-tasks.withType(JavaCompile).configureEach {
-    options.annotationProcessorPath = configurations.annotationProcessor
+tasks.withType<JavaCompile>().configureEach {
+    options.annotationProcessorPath = configurations.annotationProcessor.get()
 }
 
-javadoc {
-    failOnError = false
+tasks.withType<Javadoc>().configureEach {
+    isFailOnError = false
 }
