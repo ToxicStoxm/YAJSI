@@ -19,7 +19,7 @@ dependencies {
 
     implementation("org.yaml:snakeyaml:2.4")
 
-    implementation("io.github.classgraph:classgraph:4.8.180")
+    implementation("io.github.classgraph:classgraph:4.8.181")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.13.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.13.3")
