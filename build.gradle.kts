@@ -1,8 +1,6 @@
-import com.vanniktech.maven.publish.SonatypeHost
-
 plugins {
     id("java-library")
-    id("com.vanniktech.maven.publish") version "0.33.0"
+    id("com.vanniktech.maven.publish") version "0.34.0"
 }
 
 group = "com.toxicstoxm"
@@ -21,10 +19,10 @@ dependencies {
 
     implementation("org.yaml:snakeyaml:2.4")
 
-    implementation("io.github.classgraph:classgraph:4.8.179")
+    implementation("io.github.classgraph:classgraph:4.8.180")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:5.13.1")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.13.1")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.13.3")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.13.3")
 }
 
 tasks.test {
@@ -38,7 +36,7 @@ tasks.jar {
 }
 
 mavenPublishing {
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    publishToMavenCentral()
 
     signAllPublications()
 
