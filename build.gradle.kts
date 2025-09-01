@@ -17,7 +17,7 @@ dependencies {
     implementation("org.projectlombok:lombok:1.18.38")
     annotationProcessor("org.projectlombok:lombok:1.18.38")
 
-    implementation("org.yaml:snakeyaml:2.4")
+    implementation("org.yaml:snakeyaml:2.5")
 
     implementation("io.github.classgraph:classgraph:4.8.181")
 
