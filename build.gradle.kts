@@ -21,7 +21,7 @@ dependencies {
 
     implementation("io.github.classgraph:classgraph:4.8.181")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.0.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.13.4")
 }
 
