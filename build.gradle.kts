@@ -12,18 +12,18 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains:annotations:26.0.2")
-    annotationProcessor("org.jetbrains:annotations:26.0.2")
+    implementation("org.jetbrains:annotations:26.0.2-1")
+    annotationProcessor("org.jetbrains:annotations:26.0.2-1")
 
-    implementation("org.projectlombok:lombok:1.18.38")
-    annotationProcessor("org.projectlombok:lombok:1.18.38")
+    implementation("org.projectlombok:lombok:1.18.42")
+    annotationProcessor("org.projectlombok:lombok:1.18.42")
 
     implementation("com.toxicstoxm:StormYAML:1.0.0")
 
-    implementation("io.github.classgraph:classgraph:4.8.181")
+    implementation("io.github.classgraph:classgraph:4.8.184")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.13.4")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.0.0")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.0.0")
 }
 
 tasks.test {
