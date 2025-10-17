@@ -1,4 +1,4 @@
-package com.toxicstoxm.YAJSI.api.logging;
+package com.toxicstoxm.YAJSI;
 
 @FunctionalInterface
 public interface Logger {

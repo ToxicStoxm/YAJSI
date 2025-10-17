@@ -1,6 +1,4 @@
-package com.toxicstoxm.YAJSI.api.settings;
-
-import com.toxicstoxm.YAJSI.api.logging.Logger;
+package com.toxicstoxm.YAJSI;
 
 public interface SettingsManagerSettings {
 

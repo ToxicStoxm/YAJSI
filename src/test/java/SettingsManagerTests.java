@@ -1,8 +1,8 @@
-import com.toxicstoxm.YAJSI.api.settings.ManualAdjustmentHelper;
-import com.toxicstoxm.YAJSI.api.settings.SettingsManager;
-import com.toxicstoxm.YAJSI.api.settings.YAMLConfiguration;
-import com.toxicstoxm.YAJSI.api.settings.YAMLSetting;
-import com.toxicstoxm.YAJSI.api.yaml.InvalidConfigurationException;
+import com.toxicstoxm.YAJSI.ManualAdjustmentHelper;
+import com.toxicstoxm.YAJSI.SettingsManager;
+import com.toxicstoxm.YAJSI.YAMLConfiguration;
+import com.toxicstoxm.YAJSI.YAMLSetting;
+import com.toxicstoxm.StormYAML.yaml.InvalidConfigurationException;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;

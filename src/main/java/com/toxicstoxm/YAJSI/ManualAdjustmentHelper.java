@@ -1,6 +1,6 @@
-package com.toxicstoxm.YAJSI.api.settings;
+package com.toxicstoxm.YAJSI;
 
-import com.toxicstoxm.YAJSI.api.file.YamlConfiguration;
+import com.toxicstoxm.StormYAML.file.YamlConfiguration;
 
 public interface ManualAdjustmentHelper {
     YamlConfiguration getYAML();

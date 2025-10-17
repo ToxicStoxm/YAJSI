@@ -1,9 +1,8 @@
-package com.toxicstoxm.YAJSI.api.settings;
+package com.toxicstoxm.YAJSI;
 
-import com.toxicstoxm.YAJSI.api.file.YamlConfiguration;
-import com.toxicstoxm.YAJSI.api.logging.Logger;
-import com.toxicstoxm.YAJSI.api.yaml.ConfigurationSection;
-import com.toxicstoxm.YAJSI.api.yaml.InvalidConfigurationException;
+import com.toxicstoxm.StormYAML.file.YamlConfiguration;
+import com.toxicstoxm.StormYAML.yaml.ConfigurationSection;
+import com.toxicstoxm.StormYAML.yaml.InvalidConfigurationException;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ScanResult;

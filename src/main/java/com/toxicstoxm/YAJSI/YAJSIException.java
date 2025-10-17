@@ -1,9 +1,9 @@
-package com.toxicstoxm.YAJSI.api.settings;
+package com.toxicstoxm.YAJSI;
 
 import lombok.Builder;
 
 /**
- * Excption used by {@link SettingsManager} to indicate various errors.
+ * Exception used by {@link SettingsManager} to indicate various errors.
  * @author ToxicStoxm
  */
 public class YAJSIException extends RuntimeException {

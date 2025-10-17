@@ -4,10 +4,11 @@ plugins {
 }
 
 group = "com.toxicstoxm"
-version = "2.1.5"
+version = "3.0.0"
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 dependencies {
@@ -17,7 +18,7 @@ dependencies {
     implementation("org.projectlombok:lombok:1.18.38")
     annotationProcessor("org.projectlombok:lombok:1.18.38")
 
-    implementation("org.yaml:snakeyaml:2.4")
+    implementation("com.toxicstoxm:StormYAML:1.0.0")
 
     implementation("io.github.classgraph:classgraph:4.8.181")
 
@@ -29,22 +30,16 @@ tasks.test {
     useJUnitPlatform()
 }
 
-tasks.jar {
-    manifest {
-        attributes["Main-Class"] = "com.toxicstoxm.YAJSI.YAJSISettingsManager"
-    }
-}
-
 mavenPublishing {
     publishToMavenCentral()
 
     signAllPublications()
 
-    coordinates("com.toxicstoxm.YAJSI", "YAJSI", version as String?)
+    coordinates("com.toxicstoxm", "YAJSI", version as String?)
 
     pom {
         name = "YAJSI"
-        description = "YAJSI (Yet another Java settings implementation) uses SnakeYAML and some cool logic to make your life easier"
+        description = "YAJSI (Yet another Java settings implementation) is a high level YAML config file manager"
         inceptionYear = "2024"
         url = "https://github.com/ToxicStoxm/YAJSI/"
         licenses {
@@ -58,7 +53,7 @@ mavenPublishing {
             developer {
                 id = "toxicstoxm"
                 name = "ToxicStoxm"
-                url = "https://github.com/ToxicStoxm/"
+                url = "https://toxicstoxm.com"
             }
         }
         scm {
