@@ -64,22 +64,6 @@ mavenPublishing {
     }
 }
 
-tasks.withType<JavaCompile>().configureEach {
-    options.annotationProcessorPath = configurations.annotationProcessor.get()
-}
-
 tasks.withType<Javadoc>().configureEach {
     isFailOnError = false
-}
-
-tasks.named<JavaCompile>("compileJava") {
-    doFirst {
-        val modulePath = configurations.compileClasspath.get().filter { it.name.endsWith(".jar") }
-
-        options.compilerArgs = listOf(
-            "--module-path", modulePath.joinToString(File.pathSeparator)
-        )
-
-        classpath = files()
-    }
 }
