@@ -4,25 +4,25 @@ plugins {
 }
 
 group = "com.toxicstoxm"
-version = "2.1.5"
+version = "2.2.0"
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation("org.jetbrains:annotations:26.0.2")
-    annotationProcessor("org.jetbrains:annotations:26.0.2")
+    implementation("org.jetbrains:annotations:26.0.2-1")
+    annotationProcessor("org.jetbrains:annotations:26.0.2-1")
 
-    implementation("org.projectlombok:lombok:1.18.38")
-    annotationProcessor("org.projectlombok:lombok:1.18.38")
+    implementation("org.projectlombok:lombok:1.18.42")
+    annotationProcessor("org.projectlombok:lombok:1.18.42")
 
-    implementation("org.yaml:snakeyaml:2.4")
+    implementation("org.yaml:snakeyaml:2.5")
 
-    implementation("io.github.classgraph:classgraph:4.8.181")
+    implementation("io.github.classgraph:classgraph:4.8.184")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.13.4")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.0.0")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.0.0")
 }
 
 tasks.test {
@@ -69,22 +69,6 @@ mavenPublishing {
     }
 }
 
-tasks.withType<JavaCompile>().configureEach {
-    options.annotationProcessorPath = configurations.annotationProcessor.get()
-}
-
 tasks.withType<Javadoc>().configureEach {
     isFailOnError = false
-}
-
-tasks.named<JavaCompile>("compileJava") {
-    doFirst {
-        val modulePath = configurations.compileClasspath.get().filter { it.name.endsWith(".jar") }
-
-        options.compilerArgs = listOf(
-            "--module-path", modulePath.joinToString(File.pathSeparator)
-        )
-
-        classpath = files()
-    }
 }

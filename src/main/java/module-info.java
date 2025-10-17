@@ -2,7 +2,7 @@ module YAJSI {
     requires lombok;
     requires org.jetbrains.annotations;
     requires org.yaml.snakeyaml;
-    requires classgraph;
+    requires io.github.classgraph;
     requires java.logging;
     requires jdk.compiler;
 
