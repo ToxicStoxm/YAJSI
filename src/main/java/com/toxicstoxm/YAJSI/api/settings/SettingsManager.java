@@ -788,7 +788,16 @@ public class SettingsManager implements SettingsManagerSettings {
                 log("Skipping field: " + field.getName() + " due to annotations or modifiers.");
                 continue;
             }
-            field.setAccessible(true);
+            try {
+                field.setAccessible(true);
+            } catch (InaccessibleObjectException e) {
+                log("Skipping field: " + field.getName() + " due to: " + e.getMessage());
+                log("Skipping current object: " + clazz.getName());
+                log("To ignore object annotate with @YAMLSetting.Ignore.");
+                log("To include object initialize it!");
+                return;
+            }
+
             log("Processing field: " + field.getName());
 
             try {
@@ -819,7 +828,9 @@ public class SettingsManager implements SettingsManagerSettings {
                             ? fieldValue
                             : field.getType().getConstructor().newInstance();
                     field.set(yamlConfig, nestedObject);
-                    processYAMLFields(nestedObject, yaml, fullKey, processedObjects, overwrite);
+                    if (isCustomObject(nestedObject)) {
+                        processYAMLFields(nestedObject, yaml, fullKey, processedObjects, overwrite);
+                    }
                 } else if (isListOfPrimitives(fieldValue)) {
                     log("Detected list of primitives in field: " + field.getName());
                     if (yaml.contains(fullKey) && !overwrite) {
