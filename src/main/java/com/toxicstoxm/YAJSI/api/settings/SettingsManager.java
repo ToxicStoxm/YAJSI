@@ -822,15 +822,18 @@ public class SettingsManager implements SettingsManagerSettings {
                     fullKey = sectionPath + yamlKey;
                 }
 
+                if (fieldValue == null) {
+                    field.set(yamlConfig, field.getType().getConstructor().newInstance());
+                    fieldValue = field.get(yamlConfig);
+                }
+                if (fieldValue == null) {
+                    return;
+                }
+
                 if (isCustomObject(fieldValue)) {
                     log("Detected custom object in field: " + field.getName());
-                    Object nestedObject = fieldValue != null
-                            ? fieldValue
-                            : field.getType().getConstructor().newInstance();
-                    field.set(yamlConfig, nestedObject);
-                    if (isCustomObject(nestedObject)) {
-                        processYAMLFields(nestedObject, yaml, fullKey, processedObjects, overwrite);
-                    }
+                    field.set(yamlConfig, fieldValue);
+                    processYAMLFields(fieldValue, yaml, fullKey, processedObjects, overwrite);
                 } else if (isListOfPrimitives(fieldValue)) {
                     log("Detected list of primitives in field: " + field.getName());
                     if (yaml.contains(fullKey) && !overwrite) {
@@ -889,9 +892,6 @@ public class SettingsManager implements SettingsManagerSettings {
      * @return {@code false} if the specified object is a primitive object, otherwise {@code true}
      */
     private boolean isCustomObject(Object object) {
-        if (object == null) {
-            return true;
-        }
         Class<?> clazz = object.getClass();
         return !(clazz.isPrimitive() || clazz.equals(String.class) || clazz.equals(Boolean.class) || Number.class.isAssignableFrom(clazz) || clazz.isArray() || isListOfPrimitives(object));
     }
