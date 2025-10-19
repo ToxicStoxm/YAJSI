@@ -1,4 +1,4 @@
-package com.toxicstoxm.YAJSI;
+package com.toxicstoxm.YAJSI.old;
 
 import com.toxicstoxm.StormYAML.file.YamlConfiguration;
 

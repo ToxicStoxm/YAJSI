@@ -1,4 +1,4 @@
-package com.toxicstoxm.YAJSI;
+package com.toxicstoxm.YAJSI.old;
 
 public enum YAMLUpdatingBehaviour {
     MARK_UNUSED,
