@@ -8,7 +8,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface YAMLSetting {
-    String path() default "";
+    String name() default "";
+    String env() default "";
     String[] comments() default {};
 
     @Retention(RetentionPolicy.RUNTIME)

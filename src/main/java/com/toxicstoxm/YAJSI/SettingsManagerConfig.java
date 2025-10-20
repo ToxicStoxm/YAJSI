@@ -19,6 +19,6 @@ public class SettingsManagerConfig {
     private String appName = "YAJSI";
 
     @Builder.Default
-    private DuplicateSettingsStrategy duplicatedSettingsStrategy = DuplicateSettingsStrategy.ERROR;
+    private boolean envOverwrites = false;
 
 }

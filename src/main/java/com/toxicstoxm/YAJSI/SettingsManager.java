@@ -4,6 +4,7 @@ import com.toxicstoxm.StormYAML.file.YamlConfiguration;
 import com.toxicstoxm.YAJSI.upgrading.UpgradeCallback;
 import com.toxicstoxm.YAJSI.upgrading.Version;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -72,11 +73,17 @@ public class SettingsManager {
         return yaml;
     }
 
-
     private SettingsBundleManager getBundleManager(Class<? extends SettingsBundle> bundle) {
         if (!registeredBundles.containsKey(bundle)) {
             registeredBundles.put(bundle, new SettingsBundleManager());
         }
         return registeredBundles.get(bundle);
+    }
+
+    public  <T> @Nullable T getSettingsBundleInstance(Class<T> bundle, UUID id) {
+        for (SettingsBundle b : registeredBundles.get(bundle).registeredConfigs.keySet()) {
+            if (b.getId().equals(id)) return bundle.cast(b);
+        }
+        return null;
     }
 }

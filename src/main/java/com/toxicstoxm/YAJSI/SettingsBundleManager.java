@@ -1,17 +1,22 @@
 package com.toxicstoxm.YAJSI;
 
 import com.toxicstoxm.StormYAML.file.YamlConfiguration;
-import com.toxicstoxm.StormYAML.yaml.InvalidConfigurationException;
 import com.toxicstoxm.YAJSI.upgrading.UpgradeCallback;
 import com.toxicstoxm.YAJSI.upgrading.Version;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class SettingsBundleManager {
     private final HashMap<Version, UpgradeCallback> upgradeCallbacks = new HashMap<>();
-    private final HashMap<SettingsBundle, YamlConfiguration> registeredConfigs = new HashMap<>();
+    protected final HashMap<SettingsBundle, YamlConfiguration> registeredConfigs = new HashMap<>();
 
     public YamlConfiguration upgrade(@NotNull SettingsBundle bundle, @NotNull YamlConfiguration yaml) {
         Version old = bundle.getVersion().fromString(yaml.getString("Version"));
@@ -33,29 +38,153 @@ public class SettingsBundleManager {
         upgradeCallbacks.put(base, cb);
     }
 
-    public void registerConfig(SettingsBundle config, YamlConfiguration yaml) {
+    public void registerConfig(SettingsBundle config, YamlConfiguration yaml) throws IllegalStateException {
+        YamlConfiguration upgraded = upgrade(config, yaml);
+        try {
+            upgraded.save(config.getFile());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        List<Object> processedObjects = new ArrayList<>();
+        processConfig(processedObjects, config, upgraded, "");
         registeredConfigs.put(config, yaml);
-        loadConfig(config, upgrade(config, yaml));
     }
 
-    public void loadConfig(@NotNull SettingsBundle config, YamlConfiguration yaml) throws InvalidConfigurationException {
-        Class<? extends SettingsBundle> clazz = config.getClass();
-        HashMap<String, Field> discoveredFields = new HashMap<>();
+    public void processConfig(@NotNull List<Object> processedObjects, @NotNull Object config, YamlConfiguration yaml, String base) throws IllegalStateException {
+        if (processedObjects.contains(config)) {
+            return;
+        }
+        processedObjects.add(config);
 
-        for (Field field : clazz.getDeclaredFields()) {
-            if (field.isAnnotationPresent(YAMLSetting.class)) {
-                YAMLSetting setting = field.getAnnotation(YAMLSetting.class);
-                if (discoveredFields.containsKey(setting.path())) {
-                    switch (SettingsManager.getInstance().settings.getDuplicatedSettingsStrategy()) {
-                        case ERROR -> throw new InvalidConfigurationException("Config cannot have duplicate keys!");
-                        case USE_DEFAULTS -> System.out.println("TODO USE_DEFAULTS");
-                        case PICK_FIRST -> System.out.println("TODO PICK_FIRST");
-                    }
-                } else {
-                    discoveredFields.put(setting.path(), field);
+        for (Field field : config.getClass().getDeclaredFields()) {
+            if (!isEligibleForConfig(field)) continue;
+
+            try {
+                field.setAccessible(true);
+
+                String fullKey = getYAMLPath(field, base.isEmpty() ? "" : base + ".");
+                updateComments(field, fullKey, yaml);
+
+                Object fieldValue = getFieldValue(config, field);
+
+                if (isCustomObject(fieldValue)) {
+                    field.set(config, fieldValue);
+                    processConfig(processedObjects, fieldValue, yaml, fullKey);
+                    return;
                 }
+
+                boolean yamlHasKey = yaml.contains(fullKey);
+                boolean checkEnv = SettingsManager.getInstance().settings.isEnvOverwrites();
+
+                if (isListOfPrimitives(fieldValue)) {
+                    Object value = yamlHasKey ? yaml.getList(fullKey) : fieldValue;
+                    if (!yamlHasKey) yaml.set(fullKey, fieldValue);
+                    if (checkEnv) {
+                        Object finalObject = EnvUtils.checkForEnvPrimitiveList(field, fieldValue);
+                        if (!finalObject.equals(value) && processedObjects.getFirst() instanceof SettingsBundle bundle) {
+                            bundle.setEnvSubstituted(field.getName());
+                        }
+                        field.set(config, finalObject);
+                    }
+                    field.set(config, value);
+                } else {
+                    Object value = yamlHasKey ? getValue(field.getType(), yaml.get(fullKey)) : fieldValue;
+                    if (!yamlHasKey) yaml.set(fullKey, fieldValue);
+                    if (checkEnv) {
+                        Object finalObject = EnvUtils.checkForEnvPrimitive(field, fieldValue);
+                        if (!finalObject.equals(value) && processedObjects.getFirst() instanceof SettingsBundle bundle) {
+                            bundle.setEnvSubstituted(field.getName());
+                        }
+                        field.set(config, finalObject);
+                    }
+                    field.set(config, value);
+                }
+
+            } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException |
+                     InstantiationException | NullPointerException e) {
+                if (processedObjects.getFirst() instanceof SettingsBundle bundle) {
+                    throw new IllegalStateException("Failed to register config! File: '" + bundle.getFile() + "' ID: '" + bundle.getId() + "' Version: '" + bundle.getVersion() + "'", e);
+                }
+                return;
             }
         }
-        System.out.println("Loading " + clazz + " " + config.getId() + " " + config.getVersion() + " " + config.getFile());
+    }
+
+    private @NotNull Object getFieldValue(Object config, @NotNull Field field) throws IllegalAccessException, NoSuchMethodException, InvocationTargetException, InstantiationException, NullPointerException {
+        Object fieldValue = field.get(config);
+        if (fieldValue == null) {
+            field.set(config, field.getType().getConstructor().newInstance());
+            fieldValue = field.get(config);
+        }
+        if (fieldValue == null) {
+            throw new NullPointerException("Unable to initialize field value!");
+        }
+        return fieldValue;
+    }
+
+    private void updateComments(@NotNull Field field, String fullKey, YamlConfiguration yaml) {
+        if (field.isAnnotationPresent(YAMLSetting.class)) {
+            String[] comments = field.getAnnotation(YAMLSetting.class).comments();
+            if (comments.length > 0) {
+                yaml.setComments(fullKey, null);
+                yaml.setComments(fullKey, List.of(comments));  // Set comments for the key
+            }
+        }
+    }
+
+    private @NotNull String getYAMLPath(@NotNull Field field, String base) {
+        String declaredName = "";
+        if (field.isAnnotationPresent(YAMLSetting.class)) {
+            declaredName = field.getAnnotation(YAMLSetting.class).name();
+        }
+        return base + "." + (declaredName.isBlank() ? field.getName() : declaredName);
+    }
+
+    private boolean isEligibleForConfig(@NotNull Field field) {
+        int modifiers = field.getModifiers();
+        return !(field.isAnnotationPresent(YAMLSetting.Ignore.class)
+                || Modifier.isFinal(modifiers)
+                || Modifier.isStatic(modifiers));
+    }
+
+    /**
+     * Checks if the specified object is not a primitive object.
+     * @param object the object to check
+     * @return {@code false} if the specified object is a primitive object, otherwise {@code true}
+     */
+    private boolean isCustomObject(@NotNull Object object) {
+        Class<?> clazz = object.getClass();
+        return !(clazz.isPrimitive() || clazz.equals(String.class) || clazz.equals(Boolean.class) || Number.class.isAssignableFrom(clazz) || clazz.isArray() || isListOfPrimitives(object));
+    }
+
+    /**
+     * Checks if the specified object is a list of primitive objects.
+     * @param object the object to check
+     * @return {@code true} if the specified object is a list of primitive objects, otherwise {@code true}
+     */
+    private boolean isListOfPrimitives(Object object) {
+        if (object instanceof List<?> list) {
+            if (list.isEmpty()) {
+                return true; // Consider empty lists as lists of primitives
+            }
+            // Check if all elements are primitives or simple types
+            return list.stream().allMatch(item ->
+                    item instanceof String || item instanceof Number || item instanceof Boolean
+            );
+        }
+        return false;
+    }
+
+    /**
+     * This method ensures double values from the YAML config file are converted to primitive floats if needed.
+     * @param desired the desired primitive abject type, specified by the YAML config class
+     * @param current the current object, that may be converted if necessary
+     * @return the final object
+     */
+    private Object getValue(@NotNull Type desired, Object current) {
+        if (desired.equals(float.class)) {
+            return ((Double) current).floatValue();
+        }
+        return current;
     }
 }

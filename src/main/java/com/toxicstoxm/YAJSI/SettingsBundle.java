@@ -5,6 +5,9 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Getter
@@ -14,6 +17,7 @@ public class SettingsBundle {
     private final Version version;
     private final File file;
     private final ConfigType type;
+    private final List<String> envSubstituted = new ArrayList<>();
 
     public SettingsBundle(Version version, File f, ConfigType type) {
         this.version = version;
@@ -33,5 +37,25 @@ public class SettingsBundle {
 
     public boolean isReadonly() {
         return this.type == ConfigType.READONLY;
+    }
+
+    public boolean isEnvSubstituted(String variable) {
+        return envSubstituted.contains(variable);
+    }
+
+    protected void setEnvSubstituted(String variable) {
+        envSubstituted.add(variable);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        SettingsBundle that = (SettingsBundle) o;
+        return Objects.equals(id, that.id) && Objects.equals(version, that.version) && Objects.equals(file, that.file) && type == that.type;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, version, file, type);
     }
 }

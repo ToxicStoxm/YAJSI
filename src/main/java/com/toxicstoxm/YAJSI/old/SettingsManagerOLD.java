@@ -806,7 +806,7 @@ public class SettingsManagerOLD implements SettingsManagerSettings {
                 Object fieldValue = field.get(yamlConfig);
 
                 if (field.isAnnotationPresent(YAMLSetting.class)) {
-                    String tmp = field.getAnnotation(YAMLSetting.class).path();
+                    String tmp = field.getAnnotation(YAMLSetting.class).name();
                     yamlKey = tmp.isBlank() ? field.getName() : tmp;
                     fullKey = sectionPath + yamlKey;
                     log("Field has YAMLSetting annotation. Using key: '" + yamlKey + "'.");
