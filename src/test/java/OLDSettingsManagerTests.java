@@ -1,7 +1,7 @@
 import com.toxicstoxm.YAJSI.old.ManualAdjustmentHelper;
 import com.toxicstoxm.YAJSI.old.SettingsManagerOLD;
 import com.toxicstoxm.YAJSI.old.YAMLConfiguration;
-import com.toxicstoxm.YAJSI.old.YAMLSetting;
+import com.toxicstoxm.YAJSI.YAMLSetting;
 import com.toxicstoxm.StormYAML.yaml.InvalidConfigurationException;
 import org.junit.jupiter.api.Test;
 
@@ -130,10 +130,10 @@ public class OLDSettingsManagerTests {
     public float floatField = 10.5F;
 
     // Fields with custom YAML names and comments
-    @YAMLSetting(name = "customStringName", comments = {"This is a string field", "Used for testing"})
+    @YAMLSetting(path = "customStringName", comments = {"This is a string field", "Used for testing"})
     public String customStringField = "customDefaultValue";
 
-    @YAMLSetting(name = "customIntName", comments = {"This is an integer field", "Used to test integer fields"})
+    @YAMLSetting(path = "customIntName", comments = {"This is an integer field", "Used to test integer fields"})
     public int customIntField = 123;
 
     // Fields with nested objects
@@ -177,14 +177,14 @@ public class OLDSettingsManagerTests {
     public static class NestedInnerSection {
         public String innerString = "innerStringDefault";
         public boolean innerBoolean = false;
-        @YAMLSetting(name = "innerCustomField", comments = {"This is an inner custom field", "Testing the nested structure"})
+        @YAMLSetting(path = "innerCustomField", comments = {"This is an inner custom field", "Testing the nested structure"})
         public float innerFloat = 7.8F;
     }
 
     public static class AnotherTestSection {
 
         // Basic fields with different types
-        @YAMLSetting(name = "anotherCustomName", comments = {"Another section string"})
+        @YAMLSetting(path = "anotherCustomName", comments = {"Another section string"})
         public String anotherCustomString = "anotherDefaultValue";
 
         @YAMLSetting(comments = {"This is a list of integers in another section"})
@@ -209,7 +209,7 @@ public class OLDSettingsManagerTests {
         public String complexString = "complexValue";
         public List<NestedTestSection> sectionList = List.of(new NestedTestSection(), new NestedTestSection());
 
-        @YAMLSetting(name = "complexField", comments = {"This is a complex field", "It has both nested and list data"})
+        @YAMLSetting(path = "complexField", comments = {"This is a complex field", "It has both nested and list data"})
         public NestedTestSection complexField = new NestedTestSection();
     }
 
@@ -228,13 +228,13 @@ public class OLDSettingsManagerTests {
     @YAMLSetting(comments = {"A simple boolean field", "For testing purposes"})
     public boolean booleanField = true;
 
-    @YAMLSetting(name = "customLongName", comments = {"This is a custom long field", "It's used for testing"})
+    @YAMLSetting(path = "customLongName", comments = {"This is a custom long field", "It's used for testing"})
     public long customLongField = 123456789L;
 
     @YAMLSetting(comments = {"This is a double field", "Used for testing"})
     public double anotherDoubleField = 22.22;
 
-    @YAMLSetting(name = "complexTest", comments = {"Testing complex test", "Including nested objects and lists"})
+    @YAMLSetting(path = "complexTest", comments = {"Testing complex test", "Including nested objects and lists"})
     public List<ComplexTest> complexTestList = List.of(new ComplexTest(), new ComplexTest());
 
     public static class ComplexTest {
@@ -250,7 +250,7 @@ public class OLDSettingsManagerTests {
 
     @YAMLConfiguration
     public static class StringConfigTest {
-        @YAMLSetting(name = "Hey-String")
+        @YAMLSetting(path = "Hey-String")
         public String heyString = "Hello";
         public int value = 50;
         public boolean active = false;

@@ -33,7 +33,7 @@ public class SettingsManager {
         }
     }
 
-    private final SettingsManagerConfig settings;
+    protected final SettingsManagerConfig settings;
 
     private final HashMap<Class<? extends SettingsBundle>, SettingsBundleManager> registeredBundles = new HashMap<>();
 

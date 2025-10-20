@@ -18,4 +18,7 @@ public class SettingsManagerConfig {
     @Builder.Default
     private String appName = "YAJSI";
 
+    @Builder.Default
+    private DuplicateSettingsStrategy duplicatedSettingsStrategy = DuplicateSettingsStrategy.ERROR;
+
 }

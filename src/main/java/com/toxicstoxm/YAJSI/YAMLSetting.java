@@ -1,4 +1,4 @@
-package com.toxicstoxm.YAJSI.old;
+package com.toxicstoxm.YAJSI;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface YAMLSetting {
-    String name() default "";
+    String path() default "";
     String[] comments() default {};
 
     @Retention(RetentionPolicy.RUNTIME)

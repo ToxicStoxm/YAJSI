@@ -14,7 +14,7 @@ public class SettingsManagerTests {
         public int test = 5;
 
         public TestBundle() {
-            super(new ConfigVersion(1,5,2), new File("/home/dominik/Projects/YAJSI/src/test/resources/test.yaml"), ConfigType.SETTINGS);
+            super(new ConfigVersion(1,5,2), new File("src/test/resources/test.yaml"), ConfigType.SETTINGS);
         }
     }
 

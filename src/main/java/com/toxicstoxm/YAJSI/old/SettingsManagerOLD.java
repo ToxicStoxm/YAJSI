@@ -3,6 +3,7 @@ package com.toxicstoxm.YAJSI.old;
 import com.toxicstoxm.StormYAML.file.YamlConfiguration;
 import com.toxicstoxm.StormYAML.yaml.ConfigurationSection;
 import com.toxicstoxm.StormYAML.yaml.InvalidConfigurationException;
+import com.toxicstoxm.YAJSI.YAMLSetting;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ScanResult;
@@ -805,7 +806,7 @@ public class SettingsManagerOLD implements SettingsManagerSettings {
                 Object fieldValue = field.get(yamlConfig);
 
                 if (field.isAnnotationPresent(YAMLSetting.class)) {
-                    String tmp = field.getAnnotation(YAMLSetting.class).name();
+                    String tmp = field.getAnnotation(YAMLSetting.class).path();
                     yamlKey = tmp.isBlank() ? field.getName() : tmp;
                     fullKey = sectionPath + yamlKey;
                     log("Field has YAMLSetting annotation. Using key: '" + yamlKey + "'.");
