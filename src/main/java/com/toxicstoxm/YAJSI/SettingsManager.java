@@ -80,10 +80,21 @@ public class SettingsManager {
         return registeredBundles.get(bundle);
     }
 
-    public  <T> @Nullable T getSettingsBundleInstance(Class<T> bundle, UUID id) {
-        for (SettingsBundle b : registeredBundles.get(bundle).registeredConfigs.keySet()) {
-            if (b.getId().equals(id)) return bundle.cast(b);
-        }
-        return null;
+    public <T> @Nullable T getSettingsBundleInstance(@NotNull Class<T> bundle, UUID id) {
+        return bundle.cast(registeredBundles.get(bundle).getSettingsBundleInstance(id));
+    }
+
+    public void save() {
+        registeredBundles.values().forEach(SettingsBundleManager::save);
+    }
+
+    public boolean save(@NotNull SettingsBundle bundle) {
+        if (!registeredBundles.containsKey(bundle.getClass())) return false;
+        return registeredBundles.get(bundle.getClass()).save(bundle);
+    }
+    
+    public boolean save(Class<? extends SettingsBundle> bundle, UUID id) {
+        if (!registeredBundles.containsKey(bundle)) return false;
+        return registeredBundles.get(bundle).save(id);
     }
 }

@@ -4,15 +4,14 @@ import com.toxicstoxm.StormYAML.file.YamlConfiguration;
 import com.toxicstoxm.YAJSI.upgrading.UpgradeCallback;
 import com.toxicstoxm.YAJSI.upgrading.Version;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 public class SettingsBundleManager {
     private final HashMap<Version, UpgradeCallback> upgradeCallbacks = new HashMap<>();
@@ -46,11 +45,11 @@ public class SettingsBundleManager {
             throw new RuntimeException(e);
         }
         List<Object> processedObjects = new ArrayList<>();
-        processConfig(processedObjects, config, upgraded, "");
+        loadValues(processedObjects, config, upgraded, "");
         registeredConfigs.put(config, yaml);
     }
 
-    public void processConfig(@NotNull List<Object> processedObjects, @NotNull Object config, YamlConfiguration yaml, String base) throws IllegalStateException {
+    public void loadValues(@NotNull List<Object> processedObjects, @NotNull Object config, YamlConfiguration yaml, String base) throws IllegalStateException {
         if (processedObjects.contains(config)) {
             return;
         }
@@ -68,8 +67,8 @@ public class SettingsBundleManager {
                 Object fieldValue = getFieldValue(config, field);
 
                 if (isCustomObject(fieldValue)) {
-                    field.set(config, fieldValue);
-                    processConfig(processedObjects, fieldValue, yaml, fullKey);
+                    //field.set(config, fieldValue);
+                    loadValues(processedObjects, fieldValue, yaml, fullKey);
                     return;
                 }
 
@@ -98,6 +97,43 @@ public class SettingsBundleManager {
                         field.set(config, finalObject);
                     }
                     field.set(config, value);
+                }
+
+            } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException |
+                     InstantiationException | NullPointerException e) {
+                if (processedObjects.getFirst() instanceof SettingsBundle bundle) {
+                    throw new IllegalStateException("Failed to register config! File: '" + bundle.getFile() + "' ID: '" + bundle.getId() + "' Version: '" + bundle.getVersion() + "'", e);
+                }
+                return;
+            }
+        }
+    }
+
+    public void saveValues(@NotNull List<Object> processedObjects, @NotNull Object config, YamlConfiguration yaml, String base) throws IllegalStateException {
+        if (processedObjects.contains(config)) {
+            return;
+        }
+        processedObjects.add(config);
+
+        for (Field field : config.getClass().getDeclaredFields()) {
+            if (!isEligibleForConfig(field)) continue;
+
+            try {
+                field.setAccessible(true);
+
+                String fullKey = getYAMLPath(field, base.isEmpty() ? "" : base + ".");
+                Object fieldValue = getFieldValue(config, field);
+
+                if (isCustomObject(fieldValue)) {
+                    //field.set(config, fieldValue);
+                    saveValues(processedObjects, fieldValue, yaml, fullKey);
+                    return;
+                }
+
+                boolean checkEnv = SettingsManager.getInstance().settings.isEnvOverwrites();
+
+                if (!checkEnv || config instanceof SettingsBundle bundle && !bundle.isEnvSubstituted(field.getName())) {
+                    yaml.set(fullKey, fieldValue);
                 }
 
             } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException |
@@ -186,5 +222,33 @@ public class SettingsBundleManager {
             return ((Double) current).floatValue();
         }
         return current;
+    }
+
+    public void save() {
+        registeredConfigs.keySet().forEach(this::save);
+    }
+
+    public boolean save(SettingsBundle bundle) {
+        if (bundle == null || bundle.isReadonly() || !registeredConfigs.containsKey(bundle)) {
+            return false;
+        }
+
+        List<Object> processedObjects = new ArrayList<>();
+        YamlConfiguration yaml = registeredConfigs.get(bundle);
+        loadValues(processedObjects, bundle, yaml, "");
+
+
+        return true;
+    }
+
+    public @Nullable SettingsBundle getSettingsBundleInstance(UUID id) {
+        for (SettingsBundle b : registeredConfigs.keySet()) {
+            if (b.getId().equals(id)) return b;
+        }
+        return null;
+    }
+
+    public boolean save(@NotNull UUID id) {
+        return save(getSettingsBundleInstance(id));
     }
 }
