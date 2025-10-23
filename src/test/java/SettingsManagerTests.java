@@ -50,8 +50,6 @@ public class SettingsManagerTests {
             updated.set("Tested", old.get("testing"));
 
             System.out.println("1.0.0 to 1.2.0");
-            System.out.println("------< OLD >------");
-            System.out.println(old.saveToString());
             System.out.println("------< NEW >------");
             System.out.println(updated.saveToString());
             System.out.println("-------------------");
@@ -65,8 +63,6 @@ public class SettingsManagerTests {
             updated.set("subSection.testing", old.get("Tested"));
 
             System.out.println("1.2.0 to 1.3.0");
-            System.out.println("------< OLD >------");
-            System.out.println(old.saveToString());
             System.out.println("------< NEW >------");
             System.out.println(updated.saveToString());
             System.out.println("-------------------");
@@ -80,8 +76,6 @@ public class SettingsManagerTests {
             updated.set("subSection.Test", old.get("subSection.testing"));
 
             System.out.println("1.3.0 to 1.5.2");
-            System.out.println("------< OLD >------");
-            System.out.println(old.saveToString());
             System.out.println("------< NEW >------");
             System.out.println(updated.saveToString());
             System.out.println("-------------------");
