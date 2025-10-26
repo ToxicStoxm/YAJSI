@@ -1,5 +1,6 @@
 package com.toxicstoxm.YAJSI;
 
+import com.toxicstoxm.YAJSI.upgrading.UpgradeCallback;
 import com.toxicstoxm.YAJSI.upgrading.Version;
 import lombok.Builder;
 import lombok.Getter;
@@ -26,13 +27,15 @@ public class SettingsBundle {
     }
 
     public SettingsBundle(Version version, File f) {
-        this.version = version;
-        this.file = f;
-        this.type = ConfigType.SETTINGS;
+        this(version, f, ConfigType.SETTINGS);
     }
 
-    public void register() {
+    public void register() throws IllegalStateException, UnsupportedOperationException {
         SettingsManager.getInstance().registerConfig(this);
+    }
+
+    public void registerUpgradeCallback(UpgradeCallback cb, Version base) throws UnsupportedOperationException {
+        SettingsManager.getInstance().registerUpgradeCallback(getClass(), cb, base);
     }
 
     public boolean isReadonly() {

@@ -3,7 +3,6 @@ package com.toxicstoxm.YAJSI.upgrading;
 import org.jetbrains.annotations.NotNull;
 
 public record ConfigVersion(int major, int minor, int patch) implements Version {
-
     @Override
     public Version getVersion() {
         return this;
