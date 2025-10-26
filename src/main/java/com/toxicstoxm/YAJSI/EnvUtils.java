@@ -1,118 +1,105 @@
 package com.toxicstoxm.YAJSI;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.regex.Pattern;
 
 public class EnvUtils {
+    private static final Pattern CAMEL_CASE = Pattern.compile("([a-z0-9])([A-Z])");
+    private static final Pattern SPACES_DASHES = Pattern.compile("[\\s\\-]+");
+
+    private static final ConcurrentHashMap<Field, String> ENV_NAME_CACHE = new ConcurrentHashMap<>();
+
+    private static final Map<Class<?>, Function<String, ?>> PARSERS = new HashMap<>();
+    static {
+        PARSERS.put(String.class, s -> s);
+        PARSERS.put(int.class, Integer::parseInt);
+        PARSERS.put(Integer.class, Integer::parseInt);
+        PARSERS.put(long.class, Long::parseLong);
+        PARSERS.put(Long.class, Long::parseLong);
+        PARSERS.put(double.class, Double::parseDouble);
+        PARSERS.put(Double.class, Double::parseDouble);
+        PARSERS.put(float.class, Float::parseFloat);
+        PARSERS.put(Float.class, Float::parseFloat);
+        PARSERS.put(boolean.class, Boolean::parseBoolean);
+        PARSERS.put(Boolean.class, Boolean::parseBoolean);
+        PARSERS.put(byte.class, Byte::parseByte);
+        PARSERS.put(Byte.class, Byte::parseByte);
+        PARSERS.put(short.class, Short::parseShort);
+        PARSERS.put(Short.class, Short::parseShort);
+        PARSERS.put(char.class, s -> s.isEmpty() ? '\0' : s.charAt(0));
+        PARSERS.put(Character.class, s -> s.isEmpty() ? '\0' : s.charAt(0));
+    }
+
     private static String getEnv(Field field) {
-        return System.getenv(getEnvName(field));
+        String envName = ENV_NAME_CACHE.computeIfAbsent(field, f -> {
+            if (f.isAnnotationPresent(YAMLSetting.class)) {
+                String env = f.getAnnotation(YAMLSetting.class).env();
+                if (!env.isBlank()) return env;
+            }
+            return toScreamingSnakeCase(f.getName());
+        });
+        return System.getenv(envName);
     }
 
-    private static String getEnvName(Field field) {
-        String declaredEnv = "";
-        if (field.isAnnotationPresent(YAMLSetting.class)) {
-            declaredEnv = field.getAnnotation(YAMLSetting.class).env();
-        }
-        return declaredEnv.isBlank() ? toScreamingSnakeCase(field.getName()) : declaredEnv;
-    }
-
-    private static String toScreamingSnakeCase(String name) {
+    private static @Nullable String toScreamingSnakeCase(@Nullable String name) {
         if (name == null || name.isEmpty())
             return name;
 
         // Insert underscores before uppercase letters (except at start),
         // then replace spaces/dashes with underscores, and uppercase the result.
-        return name
-                .replaceAll("([a-z0-9])([A-Z])", "$1_$2")  // camelCase → camel_Case
-                .replaceAll("[\\s\\-]+", "_")              // spaces/dashes → underscore
+        return SPACES_DASHES
+                .matcher(CAMEL_CASE.matcher(name).replaceAll("$1_$2")) // camelCase → camel_Case
+                .replaceAll("_") // spaces/dashes → underscore
                 .toUpperCase();
     }
 
-    public static Object checkForEnvPrimitive(Field field, Object fieldValue) {
+    public static @NotNull Object checkForEnvPrimitive(@NotNull Field field, @NotNull Object fieldValue) {
         String val = getEnv(field);
         if (val == null)
             return fieldValue;
 
-        Class<?> type = field.getType();
-        Object converted;
+        Function<String, ?> parser = PARSERS.get(field.getType());
+        if (parser == null) return fieldValue;
 
         try {
-            if (type == String.class) {
-                converted = val;
-            } else if (type == int.class || type == Integer.class) {
-                converted = Integer.parseInt(val);
-            } else if (type == long.class || type == Long.class) {
-                converted = Long.parseLong(val);
-            } else if (type == double.class || type == Double.class) {
-                converted = Double.parseDouble(val);
-            } else if (type == float.class || type == Float.class) {
-                converted = Float.parseFloat(val);
-            } else if (type == boolean.class || type == Boolean.class) {
-                converted = Boolean.parseBoolean(val);
-            } else if (type == byte.class || type == Byte.class) {
-                converted = Byte.parseByte(val);
-            } else if (type == short.class || type == Short.class) {
-                converted = Short.parseShort(val);
-            } else if (type == char.class || type == Character.class) {
-                converted = val.isEmpty() ? '\0' : val.charAt(0);
-            } else {
-                // Unsupported type — return unmodified config
-                return fieldValue;
-            }
-
-        } catch (Exception e) {
-            // Optional: log or warn about invalid env conversion
-            // e.g. YAJLManager.getInstance().logger.warn("Invalid env value for " + field.getName());
+            return parser.apply(val);
+        } catch (Exception ignored) {
             return fieldValue;
         }
-
-        return converted;
     }
 
-    public static Object checkForEnvPrimitiveList(Field field, Object fieldValue) {
+    public static @NotNull List<?> checkForEnvPrimitiveList(@NotNull Field field, @NotNull List<?> value) {
         String val = getEnv(field);
-        if (val == null || val.isEmpty())
-            return fieldValue;
+        if (val == null) return value;
+        if (val.isEmpty()) return Collections.emptyList();
 
-        // Detect list element type (default to String if unknown)
-        Class<?> elementType = Object.class;
-        if (field.getGenericType() instanceof ParameterizedType parameterizedType) {
-            Type[] typeArgs = parameterizedType.getActualTypeArguments();
-            if (typeArgs.length == 1 && typeArgs[0] instanceof Class<?> clazz)
-                elementType = clazz;
+        Class<?> elementType = String.class;
+        if (field.getGenericType() instanceof ParameterizedType pt) {
+            Type[] args = pt.getActualTypeArguments();
+            if (args.length == 1 && args[0] instanceof Class<?> c)
+                elementType = c;
         }
 
-        // Split env value by commas (e.g. "1,2,3" or "true,false,true")
+        Function<String, ?> parser = PARSERS.getOrDefault(elementType, s -> s);
+
         String[] parts = val.split("\\s*,\\s*");
         List<Object> parsedList = new ArrayList<>(parts.length);
-
         for (String part : parts) {
-            Object converted = switch (elementType.getSimpleName()) {
-                case "String" -> part;
-                case "Integer", "int" -> Integer.parseInt(part);
-                case "Long", "long" -> Long.parseLong(part);
-                case "Double", "double" -> Double.parseDouble(part);
-                case "Float", "float" -> Float.parseFloat(part);
-                case "Boolean", "boolean" -> Boolean.parseBoolean(part);
-                case "Byte", "byte" -> Byte.parseByte(part);
-                case "Short", "short" -> Short.parseShort(part);
-                case "Character", "char" -> part.isEmpty() ? '\0' : part.charAt(0);
-                default -> part; // fallback: keep as string
-            };
-            parsedList.add(converted);
+            try {
+                parsedList.add(parser.apply(part));
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Unable to parse list from env variables, contains different types!", e);
+            }
         }
 
-        try {
-            field.setAccessible(true);
-            field.set(fieldValue, parsedList);
-        } catch (IllegalAccessException e) {
-            // Optional: log or ignore
-            // e.g. YAJLManager.getInstance().logger.warn("Failed to set env list for " + field.getName());
-        }
-
-        return fieldValue;
+        return parsedList;
     }
 }
