@@ -3,6 +3,9 @@ package com.toxicstoxm.YAJSI;
 import com.toxicstoxm.StormYAML.file.YamlConfiguration;
 import com.toxicstoxm.YAJSI.upgrading.UpgradeCallback;
 import com.toxicstoxm.YAJSI.upgrading.Version;
+import lombok.AccessLevel;
+import lombok.Setter;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,7 +24,12 @@ public class SettingsManager {
         return instance;
     }
 
-    public static SettingsManagerBlueprint configure() {
+    public static SettingsManagerConfig getSettings() {
+        return getInstance().settings.toBuilder().done();
+    }
+
+    @Contract(" -> new")
+    public static @NotNull SettingsManagerBlueprint configure() {
         return new SettingsManagerBlueprint();
     }
 
@@ -29,24 +37,29 @@ public class SettingsManager {
         @Override
         public SettingsManagerConfig done() {
             SettingsManagerConfig conf = super.done();
-            instance = new SettingsManager(conf);
+            if (instance == null) {
+                instance = new SettingsManager(conf);
+            } else {
+                instance.setSettings(conf);
+            }
             return conf;
         }
     }
 
-    protected final SettingsManagerConfig settings;
+    @Setter(AccessLevel.PRIVATE)
+    private SettingsManagerConfig settings;
 
-    private final HashMap<Class<? extends SettingsBundle>, SettingsBundleManager> registeredBundles = new HashMap<>();
+    private final HashMap<String, SettingsBundleManager> registeredBundles = new HashMap<>();
 
     private SettingsManager(SettingsManagerConfig settings) {
         this.settings = settings;
     }
 
-    public void registerUpgradeCallback(Class<? extends SettingsBundle> bundle, UpgradeCallback cb, Version base) {
+    public void registerUpgradeCallback(Class<? extends SettingsBundle> bundle, UpgradeCallback cb, Version base) throws UnsupportedOperationException {
         getBundleManager(bundle).registerUpgradeCallback(cb, base);
     }
 
-    public UUID registerConfig(@NotNull SettingsBundle config) {
+    public UUID registerConfig(@NotNull SettingsBundle config) throws IllegalStateException, UnsupportedOperationException {
         getBundleManager(config.getClass()).registerConfig(config, getFile(config));
         return config.getId();
     }
@@ -73,15 +86,15 @@ public class SettingsManager {
         return yaml;
     }
 
-    private SettingsBundleManager getBundleManager(Class<? extends SettingsBundle> bundle) {
-        if (!registeredBundles.containsKey(bundle)) {
-            registeredBundles.put(bundle, new SettingsBundleManager());
+    private SettingsBundleManager getBundleManager(@NotNull Class<? extends SettingsBundle> bundle) {
+        if (!registeredBundles.containsKey(bundle.getTypeName())) {
+            registeredBundles.put(bundle.getTypeName(), new SettingsBundleManager());
         }
-        return registeredBundles.get(bundle);
+        return registeredBundles.get(bundle.getTypeName());
     }
 
     public <T> @Nullable T getSettingsBundleInstance(@NotNull Class<T> bundle, UUID id) {
-        return bundle.cast(registeredBundles.get(bundle).getSettingsBundleInstance(id));
+        return bundle.cast(registeredBundles.get(bundle.getTypeName()).getSettingsBundleInstance(id));
     }
 
     public void save() {
@@ -89,12 +102,12 @@ public class SettingsManager {
     }
 
     public boolean save(@NotNull SettingsBundle bundle) {
-        if (!registeredBundles.containsKey(bundle.getClass())) return false;
-        return registeredBundles.get(bundle.getClass()).save(bundle);
+        if (!registeredBundles.containsKey(bundle.getClass().getTypeName())) return false;
+        return registeredBundles.get(bundle.getClass().getTypeName()).save(bundle);
     }
     
-    public boolean save(Class<? extends SettingsBundle> bundle, UUID id) {
-        if (!registeredBundles.containsKey(bundle)) return false;
-        return registeredBundles.get(bundle).save(id);
+    public boolean save(@NotNull Class<? extends SettingsBundle> bundle, UUID id) {
+        if (!registeredBundles.containsKey(bundle.getTypeName())) return false;
+        return registeredBundles.get(bundle.getTypeName()).save(id);
     }
 }
