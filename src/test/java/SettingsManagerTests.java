@@ -4,6 +4,10 @@ import com.toxicstoxm.YAJSI.SettingsBundle;
 import com.toxicstoxm.YAJSI.SettingsManager;
 import com.toxicstoxm.YAJSI.YAMLSetting;
 import com.toxicstoxm.YAJSI.upgrading.ConfigVersion;
+import com.toxicstoxm.YAJSI.upgrading.Upgrader;
+import com.toxicstoxm.YAJSI.upgrading.UpgraderBundle;
+import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -24,110 +28,48 @@ public class SettingsManagerTests {
             @YAMLSetting(name = "Test")
             public int test;
         }
-    }
 
-    @Test
-    public void testSettingsManager() {
-        SettingsManager.getInstance().registerUpgradeCallback(TestBundle.class, (old, id) -> {
+        @Upgrader(base = "0.9.9", factory = ConfigVersion.Factory.class)
+        private YamlConfiguration upgrade0_9_9(YamlConfiguration old, UUID id) {
             YamlConfiguration updated = new YamlConfiguration();
             updated.set(SettingsManager.getSettings().getVersionKey(), new ConfigVersion(1, 0, 0).toString());
             updated.set("testing", old.get("test"));
 
             return updated;
-        }, new ConfigVersion(0,9,9));
+        }
 
-        SettingsManager.getInstance().registerUpgradeCallback(TestBundle.class, (old, id) -> {
+        @Upgrader(base = "1.0.0", factory = ConfigVersion.Factory.class)
+        private YamlConfiguration upgrade1_0_0(YamlConfiguration old, UUID id) {
             YamlConfiguration updated = new YamlConfiguration();
             updated.set(SettingsManager.getSettings().getVersionKey(), new ConfigVersion(1, 2, 0).toString());
             updated.set("Tested", old.get("testing"));
 
             return updated;
-        }, new ConfigVersion(1,0,0));
+        }
 
-        SettingsManager.getInstance().registerUpgradeCallback(TestBundle.class, (old, id) -> {
+        @Upgrader(base = "1.2.0", factory = ConfigVersion.Factory.class)
+        private YamlConfiguration upgrade1_2_0(YamlConfiguration old, UUID id) {
             YamlConfiguration updated = new YamlConfiguration();
             updated.set(SettingsManager.getSettings().getVersionKey(), new ConfigVersion(1, 3, 0).toString());
             updated.set("subSection.testing", old.get("Tested"));
 
             return updated;
-        }, new ConfigVersion(1,2,0));
+        }
 
-        SettingsManager.getInstance().registerUpgradeCallback(TestBundle.class, (old, id) -> {
+        @Upgrader(base = "1.3.0", factory = ConfigVersion.Factory.class)
+        private YamlConfiguration upgrade1_3_0(YamlConfiguration old, UUID id) {
             YamlConfiguration updated = new YamlConfiguration();
             updated.set(SettingsManager.getSettings().getVersionKey(), new ConfigVersion(1, 5, 2).toString());
             updated.set("subSection.Test", old.get("subSection.testing"));
 
             return updated;
-        }, new ConfigVersion(1,3,0));
+        }
+    }
 
+    @Test
+    public void testSettingsManager() {
         AppConfigBundle test = new AppConfigBundle(new File("src/test/resources/testing.yaml"));
 
-        // From 1.0.0 → 1.3.0
-        test.registerUpgradeCallback((old, id) -> {
-            YamlConfiguration updated = new YamlConfiguration();
-            updated.set(SettingsManager.getSettings().getVersionKey(), new ConfigVersion(1, 3, 0).toString());
-
-            updated.set("application.name", old.get("app.name"));
-            updated.set("application.version", old.get("app.version"));
-            updated.set("application.enabled", old.get("app.enabled"));
-            updated.set("application.startup.delay_ms", old.get("app.launch_delay_ms"));
-
-            updated.set("logging", old.get("logging"));
-            updated.set("network", old.get("network"));
-            updated.set("ui", old.get("ui"));
-            updated.set("modules", old.get("modules"));
-            updated.set("experimental", old.get("experimental"));
-            updated.set("environment", old.get("environment"));
-
-            return updated;
-        }, new ConfigVersion(1, 0, 0));
-
-        // From 1.3.0 → 1.5.0
-        test.registerUpgradeCallback((old, id) -> {
-            YamlConfiguration updated = new YamlConfiguration();
-            updated.set(SettingsManager.getSettings().getVersionKey(), new ConfigVersion(1, 5, 0).toString());
-
-            updated.set("system.logging", old.get("logging"));
-            updated.set("system.networking", old.get("network"));
-
-            updated.set("interface", old.get("ui"));
-            updated.set("components", old.get("modules"));
-            updated.set("application.details.version", old.get("application.version"));
-            updated.set("application.details.enabled", old.get("application.enabled"));
-            updated.set("application.details.startup.delay_ms", old.get("application.startup.delay_ms"));
-            updated.set("application.id", old.get("application.name"));
-
-            updated.set("experimental", old.get("experimental"));
-            updated.set("environment", old.get("environment"));
-
-            return updated;
-        }, new ConfigVersion(1, 3, 0));
-
-        // From 1.5.0 → 2.0.0
-        test.registerUpgradeCallback((old, id) -> {
-            YamlConfiguration updated = new YamlConfiguration();
-            updated.set(SettingsManager.getSettings().getVersionKey(), new ConfigVersion(2, 0, 0).toString());
-
-            // rename + restructure for final v2.0.0 layout
-            updated.set("application.id", old.get("application.id"));
-            updated.set("application.details", old.get("application.details"));
-
-            updated.set("system.logging.default_level", old.get("system.logging.level"));
-            updated.set("system.logging.outputs.file", old.get("system.logging.file"));
-            updated.set("system.logging.outputs.console", old.get("system.logging.console"));
-            updated.set("system.networking", old.get("system.networking"));
-
-            updated.set("interface", old.get("interface"));
-            updated.set("components", old.get("components"));
-
-            updated.set("experimental.features", old.get("experimental.feature_flags"));
-            updated.set("experimental.performance", old.get("experimental.values"));
-            updated.set("environment.overrides", old.get("environment"));
-
-            return updated;
-        }, new ConfigVersion(1, 5, 0));
-
-        /*
         UUID id = SettingsManager.getInstance().registerConfig(new TestBundle(new File("src/test/resources/test.yaml")));
         UUID id2 = SettingsManager.getInstance().registerConfig(new TestBundle(new File("src/test/resources/test2.yaml")));
         System.out.println(id);
@@ -141,9 +83,6 @@ public class SettingsManagerTests {
         Assertions.assertNotNull(instance2);
         System.out.println(instance2.getId());
         System.out.println(instance2.subSection.test);
-         */
-
-        test.registerUpgradeCallback(AppConfigBundle::upgradeFrom1_0_0, new ConfigVersion(1, 0, 0));
 
         test.register();
 
@@ -169,6 +108,77 @@ public class SettingsManagerTests {
         SettingsManager.getInstance().save();
     }
 
+    public static class AppConfigBundleUpgraders {
+        @Upgrader(base = "1.0.0", factory = ConfigVersion.Factory.class)
+        private @NotNull YamlConfiguration upgrade1_0_0(@NotNull YamlConfiguration old, UUID id) {
+            YamlConfiguration updated = new YamlConfiguration();
+            updated.set(SettingsManager.getSettings().getVersionKey(), new ConfigVersion(1, 3, 0).toString());
+
+            updated.set("application.name", old.get("app.name"));
+            updated.set("application.version", old.get("app.version"));
+            updated.set("application.enabled", old.get("app.enabled"));
+            updated.set("application.startup.delay_ms", old.get("app.launch_delay_ms"));
+
+            updated.set("logging", old.get("logging"));
+            updated.set("network", old.get("network"));
+            updated.set("ui", old.get("ui"));
+            updated.set("modules", old.get("modules"));
+            updated.set("experimental", old.get("experimental"));
+            updated.set("environment", old.get("environment"));
+
+            System.out.println("1 to 3");
+            return updated;
+        }
+
+        @Upgrader(base = "1.3.0", factory = ConfigVersion.Factory.class)
+        private @NotNull YamlConfiguration upgrade1_3_0(@NotNull YamlConfiguration old, UUID id) {
+            YamlConfiguration updated = new YamlConfiguration();
+            updated.set(SettingsManager.getSettings().getVersionKey(), new ConfigVersion(1, 5, 0).toString());
+
+            updated.set("system.logging", old.get("logging"));
+            updated.set("system.networking", old.get("network"));
+
+            updated.set("interface", old.get("ui"));
+            updated.set("components", old.get("modules"));
+            updated.set("application.details.version", old.get("application.version"));
+            updated.set("application.details.enabled", old.get("application.enabled"));
+            updated.set("application.details.startup.delay_ms", old.get("application.startup.delay_ms"));
+            updated.set("application.id", old.get("application.name"));
+
+            updated.set("experimental", old.get("experimental"));
+            updated.set("environment", old.get("environment"));
+
+            System.out.println("3 to 5");
+            return updated;
+        }
+
+        @Upgrader(base = "1.5.0", factory = ConfigVersion.Factory.class)
+        private @NotNull YamlConfiguration upgrade1_5_0(@NotNull YamlConfiguration old, UUID id) {
+            YamlConfiguration updated = new YamlConfiguration();
+            updated.set(SettingsManager.getSettings().getVersionKey(), new ConfigVersion(2, 0, 0).toString());
+
+            // rename + restructure for final v2.0.0 layout
+            updated.set("application.id", old.get("application.id"));
+            updated.set("application.details", old.get("application.details"));
+
+            updated.set("system.logging.default_level", old.get("system.logging.level"));
+            updated.set("system.logging.outputs.file", old.get("system.logging.file"));
+            updated.set("system.logging.outputs.console", old.get("system.logging.console"));
+            updated.set("system.networking", old.get("system.networking"));
+
+            updated.set("interface", old.get("interface"));
+            updated.set("components", old.get("components"));
+
+            updated.set("experimental.features", old.get("experimental.feature_flags"));
+            updated.set("experimental.performance", old.get("experimental.values"));
+            updated.set("environment.overrides", old.get("environment"));
+
+            System.out.println("5 to 20");
+            return updated;
+        }
+    }
+
+    @UpgraderBundle(upgraderBundle = AppConfigBundleUpgraders.class)
     public static class AppConfigBundle extends SettingsBundle {
 
         public AppConfigBundle(File f) {
@@ -303,9 +313,6 @@ public class SettingsManagerTests {
                     public static class ApiEndpoint {
                         @YAMLSetting(name = "url")
                         public String url;
-
-                        @YAMLSetting(name = "headers")
-                        public Map<String, Object> headers;
                     }
                 }
             }
@@ -407,10 +414,6 @@ public class SettingsManagerTests {
                     public double memoryUsage;
                 }
             }
-        }
-
-        public static YamlConfiguration upgradeFrom1_0_0(YamlConfiguration old, UUID id) {
-            return null;
         }
     }
 }

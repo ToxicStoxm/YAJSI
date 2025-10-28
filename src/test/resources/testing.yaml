@@ -1,32 +1,38 @@
-Version: 1.0.0
-
-app:
-  name: TestSuite
-  version: 1.4.2
-  enabled: true
-  launch_delay_ms: 1500
-
-logging:
-  level: INFO
-  file:
-    path: /var/log/testsuite/app.log
-    rotation:
-      enabled: true
-      max_size_mb: 10
-      max_files: 5
-      compress: true
-    format: '[{timestamp}] [{level}] {message}'
-  console:
+Version: 2.0.0
+application:
+  id: TestSuite
+  details:
+    version: 1.4.2
     enabled: true
-    color: auto
-
-network:
-  timeout_ms: 5000
-  retry_policy:
-    attempts: 3
-    backoff: exponential
-    base_delay_ms: 200
-  endpoints:
+    startup:
+      delay_ms: 1500
+system:
+  logging:
+    default_level: INFO
+    outputs:
+      file:
+        path: /var/log/testsuite/app.log
+        rotation:
+          enabled: true
+          max_size_mb: 10
+          max_files: 5
+          compress: true
+          size_limit_mb: 0
+          file_limit: 0
+          compression: false
+        format: '[{timestamp}] [{level}] {message}'
+      console:
+        enabled: true
+        color: auto
+        active: false
+        color_mode: ''
+  networking:
+    timeout_ms: 5000
+    retry_policy:
+      attempts: 3
+      backoff: exponential
+      base_delay_ms: 200
+    endpoints:
     - name: main-api
       url: https://api.example.com/v1
       headers:
@@ -37,8 +43,17 @@ network:
       headers:
         Authorization: Bearer <token>
         Timeout: 3000
-
-ui:
+    timeout: 0
+    retry:
+      count: 0
+      mode: ''
+      base_delay: 0
+    apis:
+      main:
+        url: ''
+      backup:
+        url: ''
+interface:
   theme: dark
   font:
     family: Fira Sans
@@ -48,36 +63,31 @@ ui:
     height: 720
     resizable: true
     fullscreen: false
-
-modules:
-  - name: auth
-    enabled: true
-    settings:
-      method: oauth2
-      token_expiry_minutes: 60
-  - name: metrics
-    enabled: false
-    settings:
-      push_interval_s: 30
-      endpoint: https://metrics.example.com/collect
-
+components:
+  auth:
+    active: false
+    mode: ''
+    token_expiry: 0
+  metrics:
+    active: false
+    push_interval: 0
+    endpoint: ''
 experimental:
-  feature_flags:
+  features:
     use_new_scheduler: true
     enable_cache: false
     strict_mode: true
-  values:
+    scheduler_v2: false
+    caching: false
+    strict: false
+  performance:
     thresholds:
       cpu: 0.85
       memory: 0.9
     patterns:
-      - '*.tmp'
-      - '*.bak'
-      - cache_*
-application:
-  id: TestSuite
-  details:
-    version: 1.4.2
-    enabled: true
-    startup:
-      delay_ms: 1500
+    - '*.tmp'
+    - '*.bak'
+    - cache_*
+    limits:
+      cpu_usage: 0.0
+      memory_usage: 0.0
