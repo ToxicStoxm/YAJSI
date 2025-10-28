@@ -102,4 +102,31 @@ public class EnvUtils {
 
         return parsedList;
     }
+
+    public static @NotNull Object checkForEnvPrimitiveArray(@NotNull Field field, @NotNull Object array) {
+        if (!array.getClass().isArray()) {
+            throw new IllegalArgumentException("Field is not an array: " + field.getName());
+        }
+
+        String val = getEnv(field);
+        if (val == null || val.isEmpty()) return array;
+
+        Class<?> componentType = array.getClass().getComponentType();
+        Function<String, ?> parser = PARSERS.getOrDefault(componentType, s -> s);
+
+        String[] parts = val.split("\\s*,\\s*");
+        Object newArray = java.lang.reflect.Array.newInstance(componentType, parts.length);
+
+        for (int i = 0; i < parts.length; i++) {
+            try {
+                java.lang.reflect.Array.set(newArray, i, parser.apply(parts[i]));
+            } catch (Exception e) {
+                throw new IllegalArgumentException(
+                        "Unable to parse array element from env variable: " + parts[i], e
+                );
+            }
+        }
+
+        return newArray;
+    }
 }

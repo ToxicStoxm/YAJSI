@@ -11,10 +11,25 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.UUID;
+import java.util.*;
+import java.util.function.Supplier;
 
 public class SettingsManager {
+    protected static final Map<Class<?>, Supplier<?>> DEFAULT_SUPPLIERS = new HashMap<>();
+
+    static {
+        DEFAULT_SUPPLIERS.put(List.class, ArrayList::new);
+        DEFAULT_SUPPLIERS.put(Map.class, HashMap::new);
+        DEFAULT_SUPPLIERS.put(Collection.class, ArrayList::new);
+
+        DEFAULT_SUPPLIERS.put(ArrayList.class, ArrayList::new);
+        DEFAULT_SUPPLIERS.put(HashSet.class, HashSet::new);
+        DEFAULT_SUPPLIERS.put(LinkedHashSet.class, LinkedHashSet::new);
+        DEFAULT_SUPPLIERS.put(HashMap.class, HashMap::new);
+        DEFAULT_SUPPLIERS.put(LinkedHashMap.class, LinkedHashMap::new);
+        DEFAULT_SUPPLIERS.put(LinkedList.class, LinkedList::new);
+    }
+
     private static SettingsManager instance;
 
     public static SettingsManager getInstance() {
@@ -57,6 +72,14 @@ public class SettingsManager {
 
     public void registerUpgradeCallback(Class<? extends SettingsBundle> bundle, UpgradeCallback cb, Version base) throws UnsupportedOperationException {
         getBundleManager(bundle).registerUpgradeCallback(cb, base);
+    }
+
+    public void registerUpgradeCallbacks(@NotNull SettingsBundle bundle) {
+        getBundleManager(bundle.getClass()).registerUpgradeCallbacks(bundle);
+    }
+
+    public void registerUpgradeCallbacks(@NotNull Class<? extends SettingsBundle> bundle, @NotNull Object o) {
+        getBundleManager(bundle).registerUpgradeCallbacks(o);
     }
 
     public UUID registerConfig(@NotNull SettingsBundle config) throws IllegalStateException, UnsupportedOperationException {
@@ -109,5 +132,9 @@ public class SettingsManager {
     public boolean save(@NotNull Class<? extends SettingsBundle> bundle, UUID id) {
         if (!registeredBundles.containsKey(bundle.getTypeName())) return false;
         return registeredBundles.get(bundle.getTypeName()).save(id);
+    }
+
+    public <T> void addSupplier(Class<T> clazz, Supplier<T> supplier) {
+        DEFAULT_SUPPLIERS.put(clazz, supplier);
     }
 }

@@ -1,17 +1,16 @@
 package com.toxicstoxm.YAJSI;
 
 import com.toxicstoxm.StormYAML.file.YamlConfiguration;
-import com.toxicstoxm.YAJSI.upgrading.UpgradeCallback;
-import com.toxicstoxm.YAJSI.upgrading.Version;
+import com.toxicstoxm.YAJSI.upgrading.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.lang.reflect.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.function.Supplier;
+
+import static com.toxicstoxm.YAJSI.SettingsManager.DEFAULT_SUPPLIERS;
 
 public class SettingsBundleManager {
     private final HashMap<Version, UpgradeCallback> upgradeCallbacks = new HashMap<>();
@@ -37,11 +36,48 @@ public class SettingsBundleManager {
         }
     }
 
-    public void registerUpgradeCallback(UpgradeCallback cb, Version base) throws UnsupportedOperationException {
+    public void registerUpgradeCallback(@NotNull UpgradeCallback cb, @NotNull Version base) throws UnsupportedOperationException {
         if (upgradeCallbacks.containsKey(base)) {
             throw new UnsupportedOperationException("Only one callback per base Version is allowed!");
         }
         upgradeCallbacks.put(base, cb);
+    }
+
+    public void registerUpgradeCallbacks(@NotNull Object o) {
+        if (o instanceof Class<?> clazz) {
+            try {
+                Constructor<?> constructor = clazz.getConstructor();
+                o = constructor.newInstance();
+            } catch (Exception e) {
+                throw new UnsupportedOperationException(clazz.getName() + " is not eligible for use as UpgradeCallbackBundle!", e);
+            }
+        }
+
+        final Class<?> clazz = o.getClass();
+        final Object upgraderBundle = o;
+
+        for (Method m : clazz.getDeclaredMethods()) {
+            try {
+                if (m.isAnnotationPresent(Upgrader.class)) {
+                    m.setAccessible(true);
+                    Upgrader upgrader = m.getAnnotation(Upgrader.class);
+
+                    Class<? extends VersionFactory<?>> factory = upgrader.factory();
+                    Constructor<? extends VersionFactory<?>> factoryConstructor = factory.getConstructor();
+                    VersionFactory<?> versionFactory = factoryConstructor.newInstance();
+
+                    registerUpgradeCallback((old, id) -> {
+                        try {
+                            return (YamlConfiguration) m.invoke(upgraderBundle, old, id);
+                        } catch (Throwable e) {
+                            throw new IllegalStateException("Failed to use method: " + m.getName() + " from class: " + clazz.getName() + " as upgrade callback!", e);
+                        }
+                    }, versionFactory.fromString(upgrader.base()));
+                }
+            } catch (Throwable e) {
+                throw new UnsupportedOperationException("Method: " + m.getName() + " from class: " + clazz.getName() + " is not eligible for use as UpgradeCallback!", e);
+            }
+        }
     }
 
     public void registerConfig(SettingsBundle config, @NotNull YamlConfiguration yaml) throws IllegalStateException, UnsupportedOperationException {
@@ -50,9 +86,20 @@ public class SettingsBundleManager {
             yaml.set(SettingsManager.getSettings().getVersionKey(), config.getVersion().toString());
         }
 
+        Class<? extends SettingsBundle> clazz = config.getClass();
+        if (registeredConfigs.isEmpty()) {
+            if (clazz.isAnnotationPresent(UpgraderBundle.class)) {
+                UpgraderBundle bundle = clazz.getAnnotation(UpgraderBundle.class);
+                registerUpgradeCallbacks(bundle.upgraderBundle());
+            } else {
+                registerUpgradeCallbacks(config);
+            }
+        }
+
         YamlConfiguration upgraded = upgrade(config, yaml);
 
         boolean autoUpgraded = false;
+        boolean cbUpgraded = !yaml.equals(upgraded);
 
         if (upgraded == null) {
             if (SettingsManager.getSettings().isAutoUpgrade()) {
@@ -60,19 +107,20 @@ public class SettingsBundleManager {
                 yaml.set(SettingsManager.getSettings().getVersionKey(), config.getVersion().toString());
                 autoUpgraded = true;
             } else {
-                throw new IllegalStateException("Unable to auto upgrade: " + config.getClass().getName() + ", auto upgrading is disabled!");
+                throw new IllegalStateException("Unable to auto upgrade: " + clazz.getName() + ", auto upgrading is disabled!");
             }
         }
 
         List<Object> processedObjects = new ArrayList<>();
 
-        List<String> keys = new ArrayList<>(yaml.getKeys(true));
+        List<String> keys = new ArrayList<>(upgraded.getKeys(true));
         keys.remove(SettingsManager.getSettings().getVersionKey());
 
         loadValues(keys, processedObjects, config, upgraded);
 
-        if (initial || config.isReadonly() && autoUpgraded && SettingsManager.getSettings().isSaveReadOnlyConfigOnVersionUpgrade() || !config.isReadonly() && !keys.isEmpty()) {
+        if (initial || config.isReadonly() && (autoUpgraded || cbUpgraded) && SettingsManager.getSettings().isSaveReadOnlyConfigOnVersionUpgrade() || !config.isReadonly() && !keys.isEmpty()) {
             for (String unused : keys) {
+                if (!upgraded.contains(unused)) continue;
                 switch (SettingsManager.getSettings().getAutoUpgradeBehaviour()) {
                     case REMOVE -> yaml.set(unused, null);
                     case MARK_UNUSED -> yaml.setComments(unused, List.of(SettingsManager.getSettings().getUnusedWarning()));
@@ -100,7 +148,7 @@ public class SettingsBundleManager {
         processedObjects.add(config);
 
         for (Field field : config.getClass().getDeclaredFields()) {
-            if (!isEligibleForConfig(field)) continue;
+            if (isNotEligibleForConfig(field)) continue;
 
             try {
                 field.setAccessible(true);
@@ -108,22 +156,16 @@ public class SettingsBundleManager {
                 String fullKey = getYAMLPath(field, base);
                 keys.remove(fullKey);
                 updateComments(field, fullKey, yaml);
-
                 Object fieldValue = getFieldValue(config, field);
-
-                if (isCustomObject(fieldValue)) {
-                    loadValues(keys, processedObjects, fieldValue, yaml, fullKey);
-                    continue;
-                }
 
                 boolean yamlHasKey = yaml.contains(fullKey);
                 boolean checkEnv = SettingsManager.getSettings().isEnvOverwrites();
 
-                if (isListOfPrimitives(fieldValue)) {
+                if (TypeUtils.isListOfPrimitives(fieldValue)) {
                     List<?> value = yaml.getList(fullKey, (List<?>) fieldValue);
 
                     // Ensure all list elements are of the expected type
-                    if (!isListOfType(field, value)) {
+                    if (!TypeUtils.isListOfType(field, value)) {
                         throw new IllegalStateException("Type mismatch in YAML for field '" + field.getName() +
                                 "': expected list of " + ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0]);
                     }
@@ -137,21 +179,52 @@ public class SettingsBundleManager {
                         }
                     }
                     field.set(config, value);
-                } else {
-                    Object value = getValue(field.getType(), yaml.get(fullKey, fieldValue));
+                    continue;
+                }
+
+                if (TypeUtils.isArrayOfPrimitives(fieldValue)) {
+                    Object value = yaml.get(fullKey, fieldValue);
+
+                    // If YAML returned a List, convert to array
+                    if (value instanceof List<?> listValue) {
+                        Class<?> componentType = fieldValue.getClass().getComponentType();
+                        Object array = java.lang.reflect.Array.newInstance(componentType, listValue.size());
+                        for (int i = 0; i < listValue.size(); i++) {
+                            java.lang.reflect.Array.set(array, i, listValue.get(i));
+                        }
+                        value = array;
+                    }
+
                     if (!yamlHasKey) yaml.set(fullKey, fieldValue);
+
                     if (checkEnv) {
-                        Object finalObject = EnvUtils.checkForEnvPrimitive(field, value);
-                        if (!finalObject.equals(value) && processedObjects.getFirst() instanceof SettingsBundle bundle) {
+                        Object finalArray = EnvUtils.checkForEnvPrimitiveArray(field, value);
+                        if (!finalArray.equals(value) && processedObjects.getFirst() instanceof SettingsBundle bundle) {
                             bundle.setEnvSubstituted(field.getName());
-                            value = finalObject;
+                            value = finalArray;
                         }
                     }
                     field.set(config, value);
+                    continue;
                 }
 
-            } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException |
-                     InstantiationException | NullPointerException e) {
+                if (TypeUtils.isCustomObject(fieldValue)) {
+                    loadValues(keys, processedObjects, fieldValue, yaml, fullKey);
+                    continue;
+                }
+
+                Object value = getValue(field.getType(), yaml.get(fullKey, fieldValue));
+                if (checkEnv) {
+                    Object finalObject = EnvUtils.checkForEnvPrimitive(field, value);
+                    if (!finalObject.equals(value) && processedObjects.getFirst() instanceof SettingsBundle bundle) {
+                        bundle.setEnvSubstituted(field.getName());
+                        value = finalObject;
+                    }
+                }
+                field.set(config, value);
+
+            } catch (InvocationTargetException | IllegalAccessException |
+                     InstantiationException | NullPointerException | IllegalStateException e) {
                 if (processedObjects.getFirst() instanceof SettingsBundle bundle) {
                     throw new IllegalStateException("Failed to register config! File: '" + bundle.getFile() + "' ID: '" + bundle.getId() + "' Version: '" + bundle.getVersion() + "'", e);
                 }
@@ -171,7 +244,7 @@ public class SettingsBundleManager {
         processedObjects.add(config);
 
         for (Field field : config.getClass().getDeclaredFields()) {
-            if (!isEligibleForConfig(field)) continue;
+            if (isNotEligibleForConfig(field)) continue;
 
             try {
                 field.setAccessible(true);
@@ -179,7 +252,7 @@ public class SettingsBundleManager {
                 String fullKey = getYAMLPath(field, base);
                 Object fieldValue = getFieldValue(config, field);
 
-                if (isCustomObject(fieldValue)) {
+                if (TypeUtils.isCustomObject(fieldValue)) {
                     saveValues(processedObjects, fieldValue, yaml, fullKey);
                     return;
                 }
@@ -190,8 +263,8 @@ public class SettingsBundleManager {
                     yaml.set(fullKey, fieldValue);
                 }
 
-            } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException |
-                     InstantiationException | NullPointerException e) {
+            } catch (InvocationTargetException | IllegalAccessException |
+                     InstantiationException | NullPointerException | IllegalStateException e) {
                 if (processedObjects.getFirst() instanceof SettingsBundle bundle) {
                     throw new IllegalStateException("Failed to register config! File: '" + bundle.getFile() + "' ID: '" + bundle.getId() + "' Version: '" + bundle.getVersion() + "'", e);
                 }
@@ -200,16 +273,49 @@ public class SettingsBundleManager {
         }
     }
 
-    private @NotNull Object getFieldValue(Object config, @NotNull Field field) throws IllegalAccessException, NoSuchMethodException, InvocationTargetException, InstantiationException, NullPointerException {
-        Object fieldValue = field.get(config);
-        if (fieldValue == null) {
-            field.set(config, field.getType().getConstructor().newInstance());
-            fieldValue = field.get(config);
+    private @NotNull Object getFieldValue(Object config, @NotNull Field field)
+            throws IllegalAccessException, InvocationTargetException, InstantiationException, IllegalStateException {
+        Object value = field.get(config);
+        if (value != null) return value;
+
+        Class<?> type = field.getType();
+
+        // Try direct match
+        Supplier<?> supplier = DEFAULT_SUPPLIERS.get(type);
+
+        // Try assignable (e.g., custom subclass of List)
+        if (supplier == null) {
+            for (Map.Entry<Class<?>, Supplier<?>> e : DEFAULT_SUPPLIERS.entrySet()) {
+                if (e.getKey().isAssignableFrom(type)) {
+                    supplier = e.getValue();
+                    break;
+                }
+            }
         }
-        if (fieldValue == null) {
-            throw new NullPointerException("Unable to initialize field value!");
+
+        Object instance;
+        if (supplier != null) {
+            instance = supplier.get();
+        } else if (type.isArray()) {
+            Class<?> componentType = type.getComponentType();
+            instance = java.lang.reflect.Array.newInstance(componentType, 0);
+        } else {
+
+            // Fallback: try reflection
+            try {
+                Constructor<?> constructor = type.getDeclaredConstructor();
+                constructor.setAccessible(true);
+                instance = constructor.newInstance();
+            } catch (NoSuchMethodException e) {
+                throw new IllegalStateException(
+                        "Cannot instantiate field '" + field.getName() +
+                                "' of type " + type.getName() + ": no default supplier or no-args constructor found!", e
+                );
+            }
         }
-        return fieldValue;
+
+        field.set(config, instance);
+        return instance;
     }
 
     private void updateComments(@NotNull Field field, String fullKey, YamlConfiguration yaml) {
@@ -230,66 +336,12 @@ public class SettingsBundleManager {
         return base + (base.isBlank() ? "" : ".") + (declaredName.isBlank() ? field.getName() : declaredName);
     }
 
-    private boolean isEligibleForConfig(@NotNull Field field) {
+    private boolean isNotEligibleForConfig(@NotNull Field field) {
         int modifiers = field.getModifiers();
-        return !(field.isAnnotationPresent(YAMLSetting.Ignore.class)
+        return field.isAnnotationPresent(YAMLSetting.Ignore.class)
                 || Modifier.isFinal(modifiers)
-                || Modifier.isStatic(modifiers));
+                || Modifier.isStatic(modifiers);
     }
-
-    /**
-     * Checks if the specified object is not a primitive object.
-     * @param object the object to check
-     * @return {@code false} if the specified object is a primitive object, otherwise {@code true}
-     */
-    private boolean isCustomObject(@NotNull Object object) {
-        Class<?> clazz = object.getClass();
-        return !(clazz.isPrimitive() || clazz.equals(String.class) || clazz.equals(Boolean.class) || Number.class.isAssignableFrom(clazz) || clazz.isArray() || isListOfPrimitives(object));
-    }
-
-    /**
-     * Checks if the specified object is a list of primitive objects.
-     * @param object the object to check
-     * @return {@code true} if the specified object is a list of primitive objects, otherwise {@code true}
-     */
-    private boolean isListOfPrimitives(@Nullable Object object) {
-        if (object instanceof List<?> list) {
-            if (list.isEmpty()) {
-                return true; // Consider empty lists as lists of primitives
-            }
-            // Check if all elements are primitives or simple types
-            return list.stream().allMatch(item ->
-                    item instanceof String || item instanceof Number || item instanceof Boolean
-            );
-        }
-        return false;
-    }
-
-    public static boolean isListOfType(@NotNull Field field, @Nullable Object value) {
-        if (!(value instanceof List<?> list))
-            return false;
-
-        // Determine declared element type
-        Class<?> elementType = Object.class;
-        if (field.getGenericType() instanceof ParameterizedType pt) {
-            Type[] args = pt.getActualTypeArguments();
-            if (args.length == 1 && args[0] instanceof Class<?> c)
-                elementType = c;
-        }
-
-        // Empty lists are always fine
-        if (list.isEmpty())
-            return true;
-
-        // Check that every element matches the declared type
-        for (Object elem : list) {
-            if (elem != null && !elementType.isInstance(elem))
-                return false;
-        }
-
-        return true;
-    }
-
 
     /**
      * This method ensures double values from the YAML config file are converted to primitive floats if needed.

@@ -1,6 +1,7 @@
 package com.toxicstoxm.YAJSI.upgrading;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Unmodifiable;
 
 public record ConfigVersion(int major, int minor, int patch) implements Version {
     @Override
@@ -32,21 +33,29 @@ public record ConfigVersion(int major, int minor, int patch) implements Version 
         return major + "." + minor + "." + patch;
     }
 
-    public @NotNull Version fromString(@NotNull String versionString) {
-        if (versionString.isBlank())
-            throw new IllegalArgumentException("Version string cannot be null or blank");
+    @Override
+    public @NotNull @Unmodifiable Version fromString(@NotNull String versionString) {
+       return new Factory().fromString(versionString);
+    }
 
-        String[] parts = versionString.trim().split("\\.");
-        if (parts.length != 3)
-            throw new IllegalArgumentException("Invalid version format: expected 'major.minor.patch'");
+    public static class Factory implements VersionFactory<ConfigVersion> {
+        @Override
+        public ConfigVersion fromString(@NotNull String versionString) {
+            if (versionString.isBlank())
+                throw new IllegalArgumentException("Version string cannot be null or blank");
 
-        try {
-            int major = Integer.parseInt(parts[0]);
-            int minor = Integer.parseInt(parts[1]);
-            int patch = Integer.parseInt(parts[2]);
-            return new ConfigVersion(major, minor, patch);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid version number format: " + versionString, e);
+            String[] parts = versionString.trim().split("\\.");
+            if (parts.length != 3)
+                throw new IllegalArgumentException("Invalid version format: expected 'major.minor.patch'");
+
+            try {
+                int major = Integer.parseInt(parts[0]);
+                int minor = Integer.parseInt(parts[1]);
+                int patch = Integer.parseInt(parts[2]);
+                return new ConfigVersion(major, minor, patch);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid version number format: " + versionString, e);
+            }
         }
     }
 }
