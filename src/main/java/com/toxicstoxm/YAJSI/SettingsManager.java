@@ -28,6 +28,13 @@ public class SettingsManager {
         DEFAULT_SUPPLIERS.put(HashMap.class, HashMap::new);
         DEFAULT_SUPPLIERS.put(LinkedHashMap.class, LinkedHashMap::new);
         DEFAULT_SUPPLIERS.put(LinkedList.class, LinkedList::new);
+
+        DEFAULT_SUPPLIERS.put(Integer.class, () -> 0);
+        DEFAULT_SUPPLIERS.put(String.class, () -> "");
+        DEFAULT_SUPPLIERS.put(Long.class, () -> 0L);
+        DEFAULT_SUPPLIERS.put(Float.class, () -> 0.0F);
+        DEFAULT_SUPPLIERS.put(Double.class, () -> 0.0D);
+        DEFAULT_SUPPLIERS.put(Boolean.class, () -> false);
     }
 
     private static SettingsManager instance;
@@ -45,10 +52,28 @@ public class SettingsManager {
 
     @Contract(" -> new")
     public static @NotNull SettingsManagerBlueprint configure() {
+        if (instance != null) {
+            return new SettingsManagerBlueprint(getSettings());
+        }
+
         return new SettingsManagerBlueprint();
     }
 
     public static class SettingsManagerBlueprint extends SettingsManagerConfig.SettingsManagerConfigBuilder {
+
+        public SettingsManagerBlueprint() {
+            this(SettingsManagerConfig.getDefaults());
+        }
+
+        public SettingsManagerBlueprint(SettingsManagerConfig existingConfig) {
+            envOverwrites(existingConfig.isEnvOverwrites());
+            saveReadOnlyConfigOnVersionUpgrade(existingConfig.isSaveReadOnlyConfigOnVersionUpgrade());
+            versionKey(existingConfig.getVersionKey());
+            autoUpgrade(existingConfig.isAutoUpgrade());
+            autoUpgradeBehaviour(existingConfig.getAutoUpgradeBehaviour());
+            unusedWarning(existingConfig.getUnusedWarning());
+        }
+
         @Override
         public SettingsManagerConfig done() {
             SettingsManagerConfig conf = super.done();

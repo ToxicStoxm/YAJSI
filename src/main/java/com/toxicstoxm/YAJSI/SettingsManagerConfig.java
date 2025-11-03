@@ -9,11 +9,11 @@ import org.jetbrains.annotations.NotNull;
 
 @Getter
 @Setter
-@Builder(builderMethodName = "configure", buildMethodName = "done", toBuilder = true)
+@Builder(buildMethodName = "done", toBuilder = true)
 public class SettingsManagerConfig {
     @Contract(value = " -> new", pure = true)
     public static @NotNull SettingsManagerConfig getDefaults() {
-        return SettingsManagerConfig.configure().done();
+        return SettingsManagerConfig.builder().done();
     }
 
     @Builder.Default
