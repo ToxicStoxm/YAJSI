@@ -61,7 +61,7 @@ public class EnvUtils {
                 .toUpperCase();
     }
 
-    public static @NotNull Object checkForEnvPrimitive(@NotNull Field field, @NotNull Object fieldValue) {
+    public static Object checkForEnvPrimitive(@NotNull Field field, @Nullable Object fieldValue) {
         String val = getEnv(field);
         if (val == null)
             return fieldValue;
