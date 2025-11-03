@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public class SettingsManagerTests {
@@ -68,6 +67,10 @@ public class SettingsManagerTests {
 
     @Test
     public void testSettingsManager() {
+        SettingsManager.configure()
+                .autoUpgrade(true)
+                .done();
+
         AppConfigBundle test = new AppConfigBundle(new File("src/test/resources/testing.yaml"));
 
         UUID id = SettingsManager.getInstance().registerConfig(new TestBundle(new File("src/test/resources/test.yaml")));
@@ -182,7 +185,7 @@ public class SettingsManagerTests {
     public static class AppConfigBundle extends SettingsBundle {
 
         public AppConfigBundle(File f) {
-            super(new ConfigVersion(2, 0, 0), f, ConfigType.READONLY);
+            super(new ConfigVersion(2, 0, 1), f, ConfigType.READONLY);
         }
 
         @YAMLSetting(name = "application")
@@ -199,6 +202,20 @@ public class SettingsManagerTests {
 
         @YAMLSetting(name = "experimental")
         public ExperimentalSection experimental;
+
+        public List<Integer> ints = List.of(1, 5, 6, 23, 6, 43);
+
+        public List<TestObject> tstObjs = List.of(new TestObject("HEy"), new TestObject("HEkki"), new TestObject("HEllo"));
+
+        public static class TestObject {
+            public String name;
+
+            public TestObject(String name) {
+                this.name = name;
+            }
+
+            public TestObject() {}
+        }
 
         // ===== Nested Structures =====
 
@@ -222,6 +239,9 @@ public class SettingsManagerTests {
                 public static class StartupSection {
                     @YAMLSetting(name = "delay_ms")
                     public int delayMs;
+
+                    @YAMLSetting(name = "delay_s")
+                    public Integer delayS;
                 }
             }
         }

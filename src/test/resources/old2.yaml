@@ -1,4 +1,4 @@
-Version: 2.0.0
+Version: 2.0.1
 application:
   id: TestSuite
   details:
@@ -6,6 +6,7 @@ application:
     enabled: true
     startup:
       delay_ms: 1500
+      delay_s: 0
 system:
   logging:
     default_level: INFO
@@ -14,24 +15,35 @@ system:
         path: /var/log/testsuite/app.log
         rotation:
           enabled: true
+          # Deprecated. No longer used
           max_size_mb: 10
+          # Deprecated. No longer used
           max_files: 5
+          # Deprecated. No longer used
           compress: true
           size_limit_mb: 0
           file_limit: 0
           compression: false
         format: '[{timestamp}] [{level}] {message}'
       console:
+        # Deprecated. No longer used
         enabled: true
+        # Deprecated. No longer used
         color: auto
         active: false
         color_mode: ''
   networking:
+    # Deprecated. No longer used
     timeout_ms: 5000
+    # Deprecated. No longer used
     retry_policy:
+      # Deprecated. No longer used
       attempts: 3
+      # Deprecated. No longer used
       backoff: exponential
+      # Deprecated. No longer used
       base_delay_ms: 200
+    # Deprecated. No longer used
     endpoints:
     - name: main-api
       url: https://api.example.com/v1
@@ -51,10 +63,8 @@ system:
     apis:
       main:
         url: ''
-        headers: {}
       backup:
         url: ''
-        headers: {}
 interface:
   theme: dark
   font:
@@ -76,16 +86,23 @@ components:
     endpoint: ''
 experimental:
   features:
+    # Deprecated. No longer used
     use_new_scheduler: true
+    # Deprecated. No longer used
     enable_cache: false
+    # Deprecated. No longer used
     strict_mode: true
     scheduler_v2: false
     caching: false
     strict: false
   performance:
+    # Deprecated. No longer used
     thresholds:
+      # Deprecated. No longer used
       cpu: 0.85
+      # Deprecated. No longer used
       memory: 0.9
+    # Deprecated. No longer used
     patterns:
     - '*.tmp'
     - '*.bak'
@@ -94,3 +111,14 @@ experimental:
       cpu_usage: 0.0
       memory_usage: 0.0
     exclude_patterns: []
+ints:
+- 1
+- 5
+- 6
+- 23
+- 6
+- 43
+tstObjs:
+- name: HEy
+- name: HEkki
+- name: HEllo
