@@ -1,6 +1,7 @@
 package com.toxicstoxm.YAJSI;
 
 import com.toxicstoxm.StormYAML.file.YamlConfiguration;
+import com.toxicstoxm.StormYAML.yaml.ConfigurationSection;
 import com.toxicstoxm.YAJSI.upgrading.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,21 +17,22 @@ public class SettingsBundleManager {
     private final HashMap<Version, UpgradeCallback> upgradeCallbacks = new HashMap<>();
     protected final HashMap<SettingsBundle, YamlConfiguration> registeredConfigs = new HashMap<>();
 
-    public @Nullable YamlConfiguration upgrade(@NotNull SettingsBundle bundle, @NotNull YamlConfiguration yaml) throws IllegalStateException, UnsupportedOperationException {
+    public @NotNull UpgradedYamlConfiguration upgrade(@NotNull SettingsBundle bundle, @NotNull YamlConfiguration yaml) throws IllegalStateException, UnsupportedOperationException {
         Version old = bundle.getVersion().fromString(yaml.getString(SettingsManager.getSettings().getVersionKey()));
         int cmp = bundle.getVersion().compareTo(old);
         if (cmp > 0) {
             UpgradeCallback cb = upgradeCallbacks.get(old);
             if (cb == null) {
                 if (SettingsManager.getSettings().isAutoUpgrade()) {
-                    return null;
+                    return new UpgradedYamlConfiguration(yaml, false, false);
                 } else {
                     throw new IllegalStateException("Unable to find upgradeCallback for Version " + old + " bundle " + bundle.getClass().getName());
                 }
             }
-            return upgrade(bundle, cb.process(yaml, bundle.getId()));
+            UpgradedYamlConfiguration upgraded = upgrade(bundle, cb.process(yaml, bundle.getId()));
+            return new UpgradedYamlConfiguration(upgraded.yaml(), upgraded.upToDate(), true);
         } else if (cmp == 0) {
-            return yaml;
+            return new UpgradedYamlConfiguration(yaml, true, false);
         } else {
             throw new UnsupportedOperationException("Downgrading configs is not supported!");
         }
@@ -96,15 +98,14 @@ public class SettingsBundleManager {
             }
         }
 
-        YamlConfiguration upgraded = upgrade(config, yaml);
+        UpgradedYamlConfiguration upgradedYaml = upgrade(config, yaml);
+        YamlConfiguration upgraded = upgradedYaml.yaml();
 
         boolean autoUpgraded = false;
-        boolean cbUpgraded = !yaml.equals(upgraded);
 
-        if (upgraded == null) {
+        if (!upgradedYaml.upToDate()) {
             if (SettingsManager.getSettings().isAutoUpgrade()) {
-                upgraded = yaml;
-                yaml.set(SettingsManager.getSettings().getVersionKey(), config.getVersion().toString());
+                upgraded.set(SettingsManager.getSettings().getVersionKey(), config.getVersion().toString());
                 autoUpgraded = true;
             } else {
                 throw new IllegalStateException("Unable to auto upgrade: " + clazz.getName() + ", auto upgrading is disabled!");
@@ -118,7 +119,7 @@ public class SettingsBundleManager {
 
         loadValues(keys, processedObjects, config, upgraded);
 
-        if (initial || config.isReadonly() && (autoUpgraded || cbUpgraded) && SettingsManager.getSettings().isSaveReadOnlyConfigOnVersionUpgrade() || !config.isReadonly() && !keys.isEmpty()) {
+        if (initial || config.isReadonly() && (autoUpgraded || upgradedYaml.cbUpgraded()) && SettingsManager.getSettings().isSaveReadOnlyConfigOnVersionUpgrade() || !config.isReadonly() && !keys.isEmpty()) {
             for (String unused : keys) {
                 if (!upgraded.contains(unused)) continue;
                 switch (SettingsManager.getSettings().getAutoUpgradeBehaviour()) {
@@ -137,11 +138,11 @@ public class SettingsBundleManager {
         registeredConfigs.put(config, upgraded);
     }
 
-    public void loadValues(@NotNull List<String> keys, @NotNull List<Object> processedObjects, @NotNull Object config, YamlConfiguration yaml) throws IllegalStateException {
+    public void loadValues(@NotNull List<String> keys, @NotNull List<Object> processedObjects, @NotNull Object config, ConfigurationSection yaml) throws IllegalStateException {
         loadValues(keys, processedObjects, config, yaml, "");
     }
 
-    public void loadValues(@NotNull List<String> keys, @NotNull List<Object> processedObjects, @NotNull Object config, YamlConfiguration yaml, String base) throws IllegalStateException {
+    public void loadValues(@NotNull List<String> keys, @NotNull List<Object> processedObjects, @NotNull Object config, ConfigurationSection yaml, String base) throws IllegalStateException {
         if (processedObjects.contains(config)) {
             return;
         }
@@ -180,6 +181,82 @@ public class SettingsBundleManager {
                     }
                     field.set(config, value);
                     continue;
+                } else if (fieldValue instanceof List<?> list) {
+
+                    // Can maybe be replaced with yaml.getMapList because
+                    // test:
+                    // - hello: "something"
+                    // - hello: "something2"
+                    // - hello: "something5"
+                    // list of custom objects will always produce map
+
+                    // load list from yaml (unknown type)
+                    List<?> loaded = yaml.getList(fullKey);
+
+                    // Assume list of Config sections
+                    List<ConfigurationSection> confSectionList = (List<ConfigurationSection>) loaded;
+
+                    // List from fieldValue
+                    List<Object> value = (List<Object>) list;
+
+                    // If loaded list is not null (so it exists)
+                    if (loaded != null && field.getGenericType() instanceof ParameterizedType pt) {
+                        // clear existing list from field value
+                        value = new ArrayList<>();
+
+                        // Get Type parameter type
+                        Class<?> type = (Class<?>) pt.getActualTypeArguments()[0];
+
+                        try {
+                            // First try by assuming list of config sections
+                            for (ConfigurationSection section : confSectionList) {
+                                // Instantiate new value by using the type param type
+                                Object o = getFieldValue(type);
+                                // use existing load function
+                                loadValues(keys, processedObjects, o, section);
+                                value.add(o);
+                            }
+                        } catch (ClassCastException e) {
+                            // Assume List of linked hash maps
+                            List<LinkedHashMap<String, String>> mapList = (List<LinkedHashMap<String, String>>) loaded;
+                            for (LinkedHashMap<String, String> map : mapList) {
+                                // Convert hashmaps back into config sections to be able to use existing load function
+                                // This could be prevented by writing a wrapper which under the hood can be a YAML config or a hashmap
+                                // Since inner workings are similar enough (maybe)
+                                YamlConfiguration section = new YamlConfiguration();
+                                for (Map.Entry<String, String> entry : map.entrySet()) {
+                                    section.set(entry.getKey(), entry.getValue());
+                                }
+                                // Instantiate new object vie type param type
+                                Object o = getFieldValue(type);
+                                // load using existing function
+                                loadValues(keys, processedObjects, o, section);
+                                value.add(o);
+                            }
+                        }
+                    }
+
+                    // Ensure all list elements are of the expected type
+                    if (!TypeUtils.isListOfType(field, value)) {
+                        throw new IllegalStateException("Type mismatch in YAML for field '" + field.getName() +
+                                "': expected list of " + ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0]);
+                    }
+
+                    // if yaml doesn't have key yet
+                    if (!yamlHasKey) {
+                        // serialize objects loaded from list (field value)
+                        // Buy using same loading function
+                        List<ConfigurationSection> serialized = new ArrayList<>();
+                        for (Object listObject : list) {
+                            ConfigurationSection section = new YamlConfiguration();
+                            loadValues(keys, processedObjects, listObject, section);
+                            serialized.add(section);
+                        }
+                        yaml.set(fullKey, serialized);
+                    }
+
+                    field.set(config, value);
+                    continue;
                 }
 
                 if (TypeUtils.isArrayOfPrimitives(fieldValue)) {
@@ -214,6 +291,9 @@ public class SettingsBundleManager {
                 }
 
                 Object value = getValue(field.getType(), yaml.get(fullKey, fieldValue));
+
+                if (!yamlHasKey) yaml.set(fullKey, fieldValue);
+
                 if (checkEnv) {
                     Object finalObject = EnvUtils.checkForEnvPrimitive(field, value);
                     if (!finalObject.equals(value) && processedObjects.getFirst() instanceof SettingsBundle bundle) {
@@ -278,8 +358,13 @@ public class SettingsBundleManager {
         Object value = field.get(config);
         if (value != null) return value;
 
-        Class<?> type = field.getType();
+        Object instance = getFieldValue(field.getType());
+        field.set(config, instance);
+        return instance;
+    }
 
+    private @NotNull Object getFieldValue(@NotNull Class<?> type)
+            throws IllegalAccessException, InvocationTargetException, InstantiationException, IllegalStateException {
         // Try direct match
         Supplier<?> supplier = DEFAULT_SUPPLIERS.get(type);
 
@@ -303,22 +388,21 @@ public class SettingsBundleManager {
 
             // Fallback: try reflection
             try {
-                Constructor<?> constructor = type.getDeclaredConstructor();
+                Constructor<?>[] constructors = type.getConstructors();
+                Constructor<?> constructor = type.getConstructor();
                 constructor.setAccessible(true);
                 instance = constructor.newInstance();
             } catch (NoSuchMethodException e) {
                 throw new IllegalStateException(
-                        "Cannot instantiate field '" + field.getName() +
+                        "Cannot instantiate field '" + type.getName() +
                                 "' of type " + type.getName() + ": no default supplier or no-args constructor found!", e
                 );
             }
         }
-
-        field.set(config, instance);
         return instance;
     }
 
-    private void updateComments(@NotNull Field field, String fullKey, YamlConfiguration yaml) {
+    private void updateComments(@NotNull Field field, String fullKey, ConfigurationSection yaml) {
         if (field.isAnnotationPresent(YAMLSetting.class)) {
             String[] comments = field.getAnnotation(YAMLSetting.class).comments();
             if (comments.length > 0) {
