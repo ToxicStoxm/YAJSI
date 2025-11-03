@@ -46,7 +46,7 @@ public class SettingsBundle {
         return envSubstituted.contains(variable);
     }
 
-    protected void setEnvSubstituted(String variable) {
+    public void setEnvSubstituted(String variable) {
         envSubstituted.add(variable);
     }
 
