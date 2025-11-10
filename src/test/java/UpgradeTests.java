@@ -15,7 +15,7 @@ public class UpgradeTests {
     public void upgradeTest() {
         SettingsManager.configure()
                 .autoUpgrade(true)
-                .envOverwrites(false)
+                .enableOverwriters(false)
                 .done();
 
         UserSettings settings = new UserSettings(new File("src/test/resources/user_settings.yaml"));

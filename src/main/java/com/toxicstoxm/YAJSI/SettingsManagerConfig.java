@@ -4,8 +4,12 @@ import com.toxicstoxm.YAJSI.upgrading.AutoUpgradingBehaviour;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.Singular;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.*;
+import java.util.function.Supplier;
 
 @Getter
 @Setter
@@ -17,7 +21,10 @@ public class SettingsManagerConfig {
     }
 
     @Builder.Default
-    private boolean envOverwrites = false;
+    private List<Overwriter> overwriters = new ArrayList<>(List.of(System::getenv, System::getProperty));
+
+    @Builder.Default
+    private boolean enableOverwriters = false;
 
     @Builder.Default
     private boolean saveReadOnlyConfigOnVersionUpgrade = true;
