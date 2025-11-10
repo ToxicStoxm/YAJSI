@@ -3,6 +3,8 @@ package com.toxicstoxm.YAJSI;
 import com.toxicstoxm.StormYAML.file.YamlConfiguration;
 import com.toxicstoxm.StormYAML.yaml.ConfigurationSection;
 import com.toxicstoxm.YAJSI.upgrading.*;
+import com.toxicstoxm.YAJSI.utils.EnvUtils;
+import com.toxicstoxm.YAJSI.utils.TypeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -11,7 +13,8 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.util.function.Supplier;
 
-import static com.toxicstoxm.YAJSI.SettingsManager.DEFAULT_SUPPLIERS;
+import static com.toxicstoxm.YAJSI.utils.TypeUtils.DEFAULT_SUPPLIERS;
+
 
 public class SettingsBundleManager {
     private final HashMap<Version, UpgradeCallback> upgradeCallbacks = new HashMap<>();
@@ -160,9 +163,9 @@ public class SettingsBundleManager {
                 Object fieldValue = getFieldValue(config, field);
 
                 boolean yamlHasKey = yaml.contains(fullKey);
-                boolean checkEnv = SettingsManager.getSettings().isEnvOverwrites();
+                boolean checkEnv = SettingsManager.getSettings().isEnableOverwriters();
 
-                if (TypeUtils.isListOfPrimitives(fieldValue)) {
+                if (TypeUtils.isListOfPrimitives(field, fieldValue)) {
                     List<?> value = yaml.getList(fullKey, (List<?>) fieldValue);
 
                     // Ensure all list elements are of the expected type
@@ -171,7 +174,15 @@ public class SettingsBundleManager {
                                 "': expected list of " + ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0]);
                     }
 
-                    if (!yamlHasKey) yaml.set(fullKey, fieldValue);
+                    if (!yamlHasKey) {
+                        yaml.set(fullKey, fieldValue);
+                        Supplier<?> supplier = DEFAULT_SUPPLIERS.get(field.getType());
+                        if (supplier != null) {
+                            List<?> tmp = (List<?>) DEFAULT_SUPPLIERS.get(field.getType()).get();
+                            tmp.addAll((Collection) value);
+                            value = tmp;
+                        }
+                    }
                     if (checkEnv) {
                         List<?> finalObject = EnvUtils.checkForEnvPrimitiveList(field, value);
                         if (!finalObject.equals(value) && processedObjects.getFirst() instanceof SettingsBundle bundle) {
@@ -190,40 +201,38 @@ public class SettingsBundleManager {
                     // - hello: "something5"
                     // list of custom objects will always produce map
 
-                    // load list from yaml (unknown type)
+                    // load list from YAML (unknown type)
                     List<?> loaded = yaml.getList(fullKey);
 
-                    // Assume list of Config sections
-                    List<ConfigurationSection> confSectionList = (List<ConfigurationSection>) loaded;
-
                     // List from fieldValue
+                    // Suppressed because if isPrimitiveList fails, it must be List<Object>
+                    @SuppressWarnings("unchecked")
                     List<Object> value = (List<Object>) list;
 
                     // If loaded list is not null (so it exists)
                     if (loaded != null && field.getGenericType() instanceof ParameterizedType pt) {
                         // clear existing list from field value
-                        value = new ArrayList<>();
+                        value = (List<Object>) DEFAULT_SUPPLIERS.get(field.getType()).get();
 
                         // Get Type parameter type
                         Class<?> type = (Class<?>) pt.getActualTypeArguments()[0];
-
-                        try {
+                        if (type.equals(ConfigurationSection.class)) {
                             // First try by assuming list of config sections
-                            for (ConfigurationSection section : confSectionList) {
+                            for (ConfigurationSection section : (List<ConfigurationSection>) loaded) {
                                 // Instantiate new value by using the type param type
                                 Object o = getFieldValue(type);
                                 // use existing load function
                                 loadValues(keys, processedObjects, o, section);
                                 value.add(o);
                             }
-                        } catch (ClassCastException e) {
+                        } else {
                             // Assume List of linked hash maps
                             List<LinkedHashMap<String, String>> mapList = (List<LinkedHashMap<String, String>>) loaded;
                             for (LinkedHashMap<String, String> map : mapList) {
                                 // Convert hashmaps back into config sections to be able to use existing load function
                                 // This could be prevented by writing a wrapper which under the hood can be a YAML config or a hashmap
                                 // Since inner workings are similar enough (maybe)
-                                YamlConfiguration section = new YamlConfiguration();
+                                ConfigurationSection section = new YamlConfiguration();
                                 for (Map.Entry<String, String> entry : map.entrySet()) {
                                     section.set(entry.getKey(), entry.getValue());
                                 }
@@ -242,10 +251,10 @@ public class SettingsBundleManager {
                                 "': expected list of " + ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0]);
                     }
 
-                    // if yaml doesn't have key yet
+                    // if YAML doesn't have key yet
                     if (!yamlHasKey) {
                         // serialize objects loaded from list (field value)
-                        // Buy using same loading function
+                        // By using the same loading function
                         List<ConfigurationSection> serialized = new ArrayList<>();
                         for (Object listObject : list) {
                             ConfigurationSection section = new YamlConfiguration();
@@ -253,6 +262,13 @@ public class SettingsBundleManager {
                             serialized.add(section);
                         }
                         yaml.set(fullKey, serialized);
+
+                        Supplier<?> supplier = DEFAULT_SUPPLIERS.get(field.getType());
+                        if (supplier != null) {
+                            List<Object> tmp = (List<Object>) DEFAULT_SUPPLIERS.get(field.getType()).get();
+                            tmp.addAll(value);
+                            value = tmp;
+                        }
                     }
 
                     field.set(config, value);
@@ -313,11 +329,11 @@ public class SettingsBundleManager {
         }
     }
 
-    public void saveValues(@NotNull List<Object> processedObjects, @NotNull Object config, YamlConfiguration yaml) throws IllegalStateException {
+    public void saveValues(@NotNull List<Object> processedObjects, @NotNull Object config, ConfigurationSection yaml) throws IllegalStateException {
         saveValues(processedObjects, config, yaml, "");
     }
 
-    public void saveValues(@NotNull List<Object> processedObjects, @NotNull Object config, YamlConfiguration yaml, String base) throws IllegalStateException {
+    public void saveValues(@NotNull List<Object> processedObjects, @NotNull Object config, ConfigurationSection yaml, String base) throws IllegalStateException {
         if (processedObjects.contains(config)) {
             return;
         }
@@ -332,12 +348,23 @@ public class SettingsBundleManager {
                 String fullKey = getYAMLPath(field, base);
                 Object fieldValue = getFieldValue(config, field);
 
-                if (TypeUtils.isCustomObject(fieldValue)) {
+                if (fieldValue instanceof List<?> list && !TypeUtils.isListOfPrimitives(field, fieldValue)) {
+                    List<ConfigurationSection> serialized = new ArrayList<>();
+                    for (Object listObject : list) {
+                        ConfigurationSection section = new YamlConfiguration();
+                        saveValues(processedObjects, listObject, section);
+                        serialized.add(section);
+                    }
+                    yaml.set(fullKey, serialized);
+                    return;
+                }
+
+                if (TypeUtils.isCustomObject(fieldValue) && !TypeUtils.isListOfPrimitives(field, fieldValue)) {
                     saveValues(processedObjects, fieldValue, yaml, fullKey);
                     return;
                 }
 
-                boolean checkEnv = SettingsManager.getSettings().isEnvOverwrites();
+                boolean checkEnv = SettingsManager.getSettings().isEnableOverwriters();
 
                 if (!checkEnv || config instanceof SettingsBundle bundle && !bundle.isEnvSubstituted(field.getName())) {
                     yaml.set(fullKey, fieldValue);
@@ -388,7 +415,6 @@ public class SettingsBundleManager {
 
             // Fallback: try reflection
             try {
-                Constructor<?>[] constructors = type.getConstructors();
                 Constructor<?> constructor = type.getConstructor();
                 constructor.setAccessible(true);
                 instance = constructor.newInstance();
