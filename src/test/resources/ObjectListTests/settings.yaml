@@ -1,0 +1,9 @@
+Version: 1.0.0
+Width: 50
+Loggers:
+- Enable-Limit: false
+  Message-Limit: 0
+  Message-Template: 435324857dfgdsfg
+- Enable-Limit: false
+  Message-Limit: 0
+  Message-Template: 435324857dfgdsfg
