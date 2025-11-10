@@ -14,29 +14,9 @@ import java.io.IOException;
 import java.util.*;
 import java.util.function.Supplier;
 
+import static com.toxicstoxm.YAJSI.utils.TypeUtils.DEFAULT_SUPPLIERS;
+
 public class SettingsManager {
-    protected static final Map<Class<?>, Supplier<?>> DEFAULT_SUPPLIERS = new HashMap<>();
-
-    static {
-        DEFAULT_SUPPLIERS.put(List.class, ArrayList::new);
-        DEFAULT_SUPPLIERS.put(Map.class, HashMap::new);
-        DEFAULT_SUPPLIERS.put(Collection.class, ArrayList::new);
-
-        DEFAULT_SUPPLIERS.put(ArrayList.class, ArrayList::new);
-        DEFAULT_SUPPLIERS.put(HashSet.class, HashSet::new);
-        DEFAULT_SUPPLIERS.put(LinkedHashSet.class, LinkedHashSet::new);
-        DEFAULT_SUPPLIERS.put(HashMap.class, HashMap::new);
-        DEFAULT_SUPPLIERS.put(LinkedHashMap.class, LinkedHashMap::new);
-        DEFAULT_SUPPLIERS.put(LinkedList.class, LinkedList::new);
-
-        DEFAULT_SUPPLIERS.put(Integer.class, () -> 0);
-        DEFAULT_SUPPLIERS.put(String.class, () -> "");
-        DEFAULT_SUPPLIERS.put(Long.class, () -> 0L);
-        DEFAULT_SUPPLIERS.put(Float.class, () -> 0.0F);
-        DEFAULT_SUPPLIERS.put(Double.class, () -> 0.0D);
-        DEFAULT_SUPPLIERS.put(Boolean.class, () -> false);
-    }
-
     private static SettingsManager instance;
 
     public static SettingsManager getInstance() {
@@ -61,12 +41,16 @@ public class SettingsManager {
 
     public static class SettingsManagerBlueprint extends SettingsManagerConfig.SettingsManagerConfigBuilder {
 
+        @Setter
+        private Map<Class<?>, Supplier<?>> defaultSuppliers = DEFAULT_SUPPLIERS;
+
         public SettingsManagerBlueprint() {
             this(SettingsManagerConfig.getDefaults());
         }
 
-        public SettingsManagerBlueprint(SettingsManagerConfig existingConfig) {
-            envOverwrites(existingConfig.isEnvOverwrites());
+        public SettingsManagerBlueprint(@NotNull SettingsManagerConfig existingConfig) {
+            overwriters(existingConfig.getOverwriters());
+            enableOverwriters(existingConfig.isEnableOverwriters());
             saveReadOnlyConfigOnVersionUpgrade(existingConfig.isSaveReadOnlyConfigOnVersionUpgrade());
             versionKey(existingConfig.getVersionKey());
             autoUpgrade(existingConfig.isAutoUpgrade());
@@ -82,7 +66,16 @@ public class SettingsManager {
             } else {
                 instance.setSettings(conf);
             }
+            DEFAULT_SUPPLIERS = defaultSuppliers;
             return conf;
+        }
+
+        public <T> void addSupplier(Class<T> clazz, Supplier<T> supplier) {
+            defaultSuppliers.put(clazz, supplier);
+        }
+
+        public <T> void removeDefaultSupplier(Class<T> clazz) {
+            defaultSuppliers.remove(clazz);
         }
     }
 
@@ -157,9 +150,5 @@ public class SettingsManager {
     public boolean save(@NotNull Class<? extends SettingsBundle> bundle, UUID id) {
         if (!registeredBundles.containsKey(bundle.getTypeName())) return false;
         return registeredBundles.get(bundle.getTypeName()).save(id);
-    }
-
-    public <T> void addSupplier(Class<T> clazz, Supplier<T> supplier) {
-        DEFAULT_SUPPLIERS.put(clazz, supplier);
     }
 }
