@@ -24,6 +24,12 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter:6.0.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.0.0")
+
+    testImplementation("org.projectlombok:lombok:1.18.42")
+    testAnnotationProcessor("org.projectlombok:lombok:1.18.42")
+
+    testImplementation("org.jetbrains:annotations:26.0.2-1")
+    testAnnotationProcessor("org.jetbrains:annotations:26.0.2-1")
 }
 
 tasks.test {
