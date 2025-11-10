@@ -1,15 +1,19 @@
-package com.toxicstoxm.YAJSI;
+package com.toxicstoxm.YAJSI.utils;
 
+import com.toxicstoxm.YAJSI.Overwriter;
+import com.toxicstoxm.YAJSI.SettingsManager;
+import com.toxicstoxm.YAJSI.YAMLSetting;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+
+import static com.toxicstoxm.YAJSI.utils.TypeUtils.PARSERS;
 
 public class EnvUtils {
     private static final Pattern CAMEL_CASE = Pattern.compile("([a-z0-9])([A-Z])");
@@ -17,28 +21,7 @@ public class EnvUtils {
 
     private static final ConcurrentHashMap<Field, String> ENV_NAME_CACHE = new ConcurrentHashMap<>();
 
-    private static final Map<Class<?>, Function<String, ?>> PARSERS = new HashMap<>();
-    static {
-        PARSERS.put(String.class, s -> s);
-        PARSERS.put(int.class, Integer::parseInt);
-        PARSERS.put(Integer.class, Integer::parseInt);
-        PARSERS.put(long.class, Long::parseLong);
-        PARSERS.put(Long.class, Long::parseLong);
-        PARSERS.put(double.class, Double::parseDouble);
-        PARSERS.put(Double.class, Double::parseDouble);
-        PARSERS.put(float.class, Float::parseFloat);
-        PARSERS.put(Float.class, Float::parseFloat);
-        PARSERS.put(boolean.class, Boolean::parseBoolean);
-        PARSERS.put(Boolean.class, Boolean::parseBoolean);
-        PARSERS.put(byte.class, Byte::parseByte);
-        PARSERS.put(Byte.class, Byte::parseByte);
-        PARSERS.put(short.class, Short::parseShort);
-        PARSERS.put(Short.class, Short::parseShort);
-        PARSERS.put(char.class, s -> s.isEmpty() ? '\0' : s.charAt(0));
-        PARSERS.put(Character.class, s -> s.isEmpty() ? '\0' : s.charAt(0));
-    }
-
-    private static String getEnv(Field field) {
+    private static @Nullable String getReplacement(Field field) {
         String envName = ENV_NAME_CACHE.computeIfAbsent(field, f -> {
             if (f.isAnnotationPresent(YAMLSetting.class)) {
                 String env = f.getAnnotation(YAMLSetting.class).env();
@@ -46,7 +29,13 @@ public class EnvUtils {
             }
             return toScreamingSnakeCase(f.getName());
         });
-        return System.getenv(envName);
+        for (Overwriter overwriter : SettingsManager.getSettings().getOverwriters()) {
+            String replacement = overwriter.get(envName);
+            if (replacement != null) {
+                return replacement;
+            }
+        }
+        return null;
     }
 
     private static @Nullable String toScreamingSnakeCase(@Nullable String name) {
@@ -62,7 +51,7 @@ public class EnvUtils {
     }
 
     public static Object checkForEnvPrimitive(@NotNull Field field, @Nullable Object fieldValue) {
-        String val = getEnv(field);
+        String val = getReplacement(field);
         if (val == null)
             return fieldValue;
 
@@ -77,16 +66,11 @@ public class EnvUtils {
     }
 
     public static @NotNull List<?> checkForEnvPrimitiveList(@NotNull Field field, @NotNull List<?> value) {
-        String val = getEnv(field);
+        String val = getReplacement(field);
         if (val == null) return value;
-        if (val.isEmpty()) return Collections.emptyList();
+        if (val.isEmpty()) return new ArrayList<>();
 
-        Class<?> elementType = String.class;
-        if (field.getGenericType() instanceof ParameterizedType pt) {
-            Type[] args = pt.getActualTypeArguments();
-            if (args.length == 1 && args[0] instanceof Class<?> c)
-                elementType = c;
-        }
+        Class<?> elementType = TypeUtils.getGenericTypeClass(field);
 
         Function<String, ?> parser = PARSERS.getOrDefault(elementType, s -> s);
 
@@ -108,7 +92,7 @@ public class EnvUtils {
             throw new IllegalArgumentException("Field is not an array: " + field.getName());
         }
 
-        String val = getEnv(field);
+        String val = getReplacement(field);
         if (val == null || val.isEmpty()) return array;
 
         Class<?> componentType = array.getClass().getComponentType();
