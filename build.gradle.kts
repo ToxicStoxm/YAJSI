@@ -11,25 +11,31 @@ repositories {
     mavenLocal()
 }
 
+val lombokVersion = "1.18.42"
+val jetbrainsAnnotationsVersion = "26.0.2-1"
+val junitVersion = "6.0.1"
+val classgraphVersion = "4.8.184"
+val stormYAMLVersion = "1.0.0"
+
 dependencies {
-    implementation("org.jetbrains:annotations:26.0.2-1")
-    annotationProcessor("org.jetbrains:annotations:26.0.2-1")
+    implementation("org.jetbrains:annotations:$jetbrainsAnnotationsVersion")
+    annotationProcessor("org.jetbrains:annotations:$jetbrainsAnnotationsVersion")
 
-    implementation("org.projectlombok:lombok:1.18.42")
-    annotationProcessor("org.projectlombok:lombok:1.18.42")
+    implementation("org.projectlombok:lombok:$lombokVersion")
+    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
 
-    implementation("com.toxicstoxm:StormYAML:1.0.0")
+    implementation("com.toxicstoxm:StormYAML:$stormYAMLVersion")
 
-    implementation("io.github.classgraph:classgraph:4.8.184")
+    implementation("io.github.classgraph:classgraph:$classgraphVersion")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:6.0.0")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.0.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:$junitVersion")
 
-    testImplementation("org.projectlombok:lombok:1.18.42")
-    testAnnotationProcessor("org.projectlombok:lombok:1.18.42")
+    testImplementation("org.projectlombok:lombok:$lombokVersion")
+    testAnnotationProcessor("org.projectlombok:lombok:$lombokVersion")
 
-    testImplementation("org.jetbrains:annotations:26.0.2-1")
-    testAnnotationProcessor("org.jetbrains:annotations:26.0.2-1")
+    testImplementation("org.jetbrains:annotations:$jetbrainsAnnotationsVersion")
+    testAnnotationProcessor("org.jetbrains:annotations:$jetbrainsAnnotationsVersion")
 }
 
 tasks.test {
