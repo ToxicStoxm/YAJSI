@@ -183,6 +183,27 @@ public class SettingsBundleManager {
                     continue;
                 }
 
+                if (hasExternalSerializer(field)) {
+                    ExternalYAMLSerializer<Object> serializer = getExternalSerializer(field);
+                    if (serializer != null) {
+                        ConfigurationSection section = yaml.getConfigurationSection(fullKey);
+                        Object o = null;
+                        if (section != null) {
+                            o = serializer.deserialize(section);
+                            keys.removeAll(section.getKeys(true).stream().map(s -> fullKey + "." + s).toList());
+                        }
+
+                        fieldValue = o == null ? fieldValue : o;
+
+                        if (!yamlHasKey) {
+                            yaml.set(fullKey, serializer.serialize(fieldValue));
+                        }
+
+                        field.set(config, fieldValue);
+                        continue;
+                    }
+                }
+
                 if (TypeUtils.isListOfPrimitives(field, fieldValue)) {
                     List<?> value = yaml.getList(fullKey, (List<?>) fieldValue);
 
@@ -372,6 +393,15 @@ public class SettingsBundleManager {
                     return;
                 }
 
+                if (hasExternalSerializer(field)) {
+                    ExternalYAMLSerializer<Object> serializer = getExternalSerializer(field);
+                    if (serializer != null) {
+                        ConfigurationSection serialized = serializer.serialize(fieldValue);
+                        yaml.set(fullKey, serialized);
+                        return;
+                    }
+                }
+
                 if (fieldValue instanceof List<?> list && !TypeUtils.isListOfPrimitives(field, fieldValue)) {
                     List<ConfigurationSection> serialized = new ArrayList<>();
                     for (Object listObject : list) {
@@ -488,6 +518,29 @@ public class SettingsBundleManager {
             return ((Double) current).floatValue();
         }
         return current;
+    }
+
+    private boolean hasExternalSerializer(@NotNull Field field) {
+        Class<?> typeClazz = field.getType();
+        return EXTERNAL_SERIALIZER_CACHE.containsKey(typeClazz) || typeClazz.isAnnotationPresent(SerializableWith.class);
+    }
+
+    private @Nullable ExternalYAMLSerializer<Object> getExternalSerializer(@NotNull Field field) {
+        Class<?> typeClazz = field.getType();
+        if (!EXTERNAL_SERIALIZER_CACHE.containsKey(typeClazz)) {
+            Class<? extends ExternalYAMLSerializer<Object>> serializerClazz = (Class<? extends ExternalYAMLSerializer<Object>>) typeClazz.getAnnotation(SerializableWith.class).serializer();
+
+            try {
+                Constructor<? extends ExternalYAMLSerializer<Object>> constructor = serializerClazz.getConstructor();
+                constructor.setAccessible(true);
+
+                EXTERNAL_SERIALIZER_CACHE.put(typeClazz, constructor.newInstance());
+            } catch (InvocationTargetException | NoSuchMethodException | InstantiationException |
+                     IllegalAccessException | IllegalArgumentException e) {
+                return null;
+            }
+        }
+        return EXTERNAL_SERIALIZER_CACHE.get(typeClazz);
     }
 
     public void save() {

@@ -1,4 +1,4 @@
-package com.toxicstoxm.YAJSI;
+package com.toxicstoxm.YAJSI.serializing;
 
 import com.toxicstoxm.StormYAML.file.YamlConfiguration;
 import com.toxicstoxm.StormYAML.yaml.ConfigurationSection;
@@ -19,5 +19,6 @@ public interface YAMLSerializable {
         return serialize(this);
     }
 
+    @Contract(value = "_ -> new")
     Object deserialize(@NotNull ConfigurationSection yaml);
 }

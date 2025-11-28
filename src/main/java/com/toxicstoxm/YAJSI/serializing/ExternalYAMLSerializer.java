@@ -1,4 +1,4 @@
-package com.toxicstoxm.YAJSI;
+package com.toxicstoxm.YAJSI.serializing;
 
 import com.toxicstoxm.StormYAML.file.YamlConfiguration;
 import com.toxicstoxm.StormYAML.yaml.ConfigurationSection;
