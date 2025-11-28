@@ -1,8 +1,8 @@
 import com.toxicstoxm.StormYAML.yaml.ConfigurationSection;
-import com.toxicstoxm.YAJSI.ExternalYAMLSerializer;
 import com.toxicstoxm.YAJSI.SettingsBundle;
 import com.toxicstoxm.YAJSI.SettingsManager;
-import com.toxicstoxm.YAJSI.YAMLSerializable;
+import com.toxicstoxm.YAJSI.serializing.ExternalYAMLSerializer;
+import com.toxicstoxm.YAJSI.serializing.SerializableWith;
 import com.toxicstoxm.YAJSI.upgrading.ConfigVersion;
 import lombok.NoArgsConstructor;
 import org.jetbrains.annotations.NotNull;
@@ -12,9 +12,7 @@ import java.io.File;
 
 public class CustomSerializableTests {
 
-    public static class TestBundleSerializer implements ExternalYAMLSerializer<TestBundle.LoggerSection> {
-
-
+    public static class LoggerSectionSerializer implements ExternalYAMLSerializer<TestBundle.LoggerSection> {
         @Override
         public TestBundle.LoggerSection deserialize(@NotNull ConfigurationSection yaml) {
             TestBundle.LoggerSection l = new TestBundle.LoggerSection();
@@ -45,11 +43,12 @@ public class CustomSerializableTests {
         private LoggerSection section;
 
         @NoArgsConstructor
-        public static class LoggerSection implements YAMLSerializable {
+        @SerializableWith(serializer = LoggerSectionSerializer.class)
+        public static class LoggerSection /*implements YAMLSerializable*/ {
 
             public int helloWorld;
 
-            @Override
+            /*@Override
             public @NotNull ConfigurationSection serializeSelf() {
                 ConfigurationSection section = emptyConfigSection();
                 section.set("Hallo2", helloWorld + 10);
@@ -61,7 +60,7 @@ public class CustomSerializableTests {
                 LoggerSection l = new LoggerSection();
                 l.helloWorld = yaml.getInt("Hallo2") - 10;
                 return l;
-            }
+            }*/
         }
     }
 

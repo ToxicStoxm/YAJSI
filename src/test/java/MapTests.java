@@ -15,8 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 public class MapTests {
-
-    private class Settings extends SettingsBundle {
+    private static class Settings extends SettingsBundle {
         public Settings() {
             super(new ConfigVersion(1, 0, 1), new File("src/test/resources/MapTests/settings.yaml"), ConfigType.SETTINGS);
         }
@@ -31,7 +30,6 @@ public class MapTests {
             //public float hello;
             private List<String> areas;
         }
-
     }
 
     @Test

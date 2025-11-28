@@ -2,6 +2,9 @@ package com.toxicstoxm.YAJSI;
 
 import com.toxicstoxm.StormYAML.file.YamlConfiguration;
 import com.toxicstoxm.StormYAML.yaml.ConfigurationSection;
+import com.toxicstoxm.YAJSI.serializing.ExternalYAMLSerializer;
+import com.toxicstoxm.YAJSI.serializing.SerializableWith;
+import com.toxicstoxm.YAJSI.serializing.YAMLSerializable;
 import com.toxicstoxm.YAJSI.upgrading.*;
 import com.toxicstoxm.YAJSI.utils.EnvUtils;
 import com.toxicstoxm.YAJSI.utils.TypeUtils;
@@ -19,6 +22,7 @@ import static com.toxicstoxm.YAJSI.utils.TypeUtils.DEFAULT_SUPPLIERS;
 public class SettingsBundleManager {
     private final HashMap<Version, UpgradeCallback> upgradeCallbacks = new HashMap<>();
     protected final HashMap<SettingsBundle, YamlConfiguration> registeredConfigs = new HashMap<>();
+    private static final HashMap<Class<?>, ExternalYAMLSerializer<Object>> EXTERNAL_SERIALIZER_CACHE = new HashMap<>();
 
     public @NotNull UpgradedYamlConfiguration upgrade(@NotNull SettingsBundle bundle, @NotNull YamlConfiguration yaml) throws IllegalStateException, UnsupportedOperationException {
         Version old = bundle.getVersion().fromString(yaml.getString(SettingsManager.getSettings().getVersionKey()));
@@ -215,9 +219,10 @@ public class SettingsBundleManager {
 
                     if (!yamlHasKey) {
                         yaml.set(fullKey, fieldValue);
+                        // Ensure value is not default immutable list
                         Supplier<?> supplier = DEFAULT_SUPPLIERS.get(field.getType());
                         if (supplier != null) {
-                            List<?> tmp = (List<?>) DEFAULT_SUPPLIERS.get(field.getType()).get();
+                            List<?> tmp = (List<?>) supplier.get();
                             tmp.addAll((Collection) value);
                             value = tmp;
                         }
