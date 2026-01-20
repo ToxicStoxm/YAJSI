@@ -112,8 +112,8 @@ public class SettingsManager {
 
         // Ensure parent directories exist
         File parent = configFile.getParentFile();
-        if (parent != null && !parent.exists()) {
-            parent.mkdirs();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) {
+            throw new RuntimeException("Failed to create parent directory for configuration file: " + configFile);
         }
 
         YamlConfiguration yaml = YamlConfiguration.loadConfiguration(configFile);

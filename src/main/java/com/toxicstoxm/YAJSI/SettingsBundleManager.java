@@ -18,7 +18,6 @@ import java.util.function.Supplier;
 
 import static com.toxicstoxm.YAJSI.utils.TypeUtils.DEFAULT_SUPPLIERS;
 
-
 public class SettingsBundleManager {
     private final HashMap<Version, UpgradeCallback> upgradeCallbacks = new HashMap<>();
     protected final HashMap<SettingsBundle, YamlConfiguration> registeredConfigs = new HashMap<>();
@@ -126,7 +125,7 @@ public class SettingsBundleManager {
 
         loadValues(keys, processedObjects, config, upgraded);
 
-        if (initial || config.isReadonly() && (autoUpgraded || upgradedYaml.cbUpgraded()) && SettingsManager.getSettings().isSaveReadOnlyConfigOnVersionUpgrade() || !config.isReadonly() && !keys.isEmpty()) {
+        if (initial || config.isReadonly() && (autoUpgraded || upgradedYaml.cbUpgraded()) && SettingsManager.getSettings().isSaveReadOnlyConfigOnVersionUpgrade() || !config.isReadonly()) {
             for (String unused : keys) {
                 if (!upgraded.contains(unused)) continue;
                 switch (SettingsManager.getSettings().getAutoUpgradeBehaviour()) {

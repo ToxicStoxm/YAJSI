@@ -29,10 +29,13 @@ public class EnvUtils {
             }
             return toScreamingSnakeCase(f.getName());
         });
-        for (Overwriter overwriter : SettingsManager.getSettings().getOverwriters()) {
-            String replacement = overwriter.get(envName);
-            if (replacement != null) {
-                return replacement;
+        List<Overwriter> overwriters = SettingsManager.getSettings().getOverwriters();
+        if (overwriters != null) {
+            for (Overwriter overwriter : overwriters) {
+                String replacement = overwriter.get(envName);
+                if (replacement != null) {
+                    return replacement;
+                }
             }
         }
         return null;

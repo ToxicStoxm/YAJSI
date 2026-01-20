@@ -4,6 +4,7 @@ import com.toxicstoxm.YAJSI.upgrading.UpgradeCallback;
 import com.toxicstoxm.YAJSI.upgrading.Version;
 import lombok.Builder;
 import lombok.Getter;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -20,13 +21,13 @@ public class SettingsBundle {
     private final ConfigType type;
     private final List<String> envSubstituted = new ArrayList<>();
 
-    public SettingsBundle(Version version, File f, ConfigType type) {
+    public SettingsBundle(@NotNull Version version, @NotNull File f, @NotNull ConfigType type) {
         this.version = version;
         this.file = f;
         this.type = type;
     }
 
-    public SettingsBundle(Version version, File f) {
+    public SettingsBundle(@NotNull Version version, @NotNull File f) {
         this(version, f, ConfigType.SETTINGS);
     }
 
@@ -34,7 +35,7 @@ public class SettingsBundle {
         SettingsManager.getInstance().registerConfig(this);
     }
 
-    public void registerUpgradeCallback(UpgradeCallback cb, Version base) throws UnsupportedOperationException {
+    public void registerUpgradeCallback(@NotNull UpgradeCallback cb, @NotNull Version base) throws UnsupportedOperationException {
         SettingsManager.getInstance().registerUpgradeCallback(getClass(), cb, base);
     }
 
@@ -46,7 +47,7 @@ public class SettingsBundle {
         return envSubstituted.contains(variable);
     }
 
-    public void setEnvSubstituted(String variable) {
+    public void setEnvSubstituted(@NotNull String variable) {
         envSubstituted.add(variable);
     }
 
