@@ -70,12 +70,14 @@ public class SettingsManager {
             return conf;
         }
 
-        public <T> void addSupplier(Class<T> clazz, Supplier<T> supplier) {
+        public <T> SettingsManagerBlueprint addSupplier(Class<T> clazz, Supplier<T> supplier) {
             defaultSuppliers.put(clazz, supplier);
+            return this;
         }
 
-        public <T> void removeDefaultSupplier(Class<T> clazz) {
+        public <T> SettingsManagerBlueprint removeDefaultSupplier(Class<T> clazz) {
             defaultSuppliers.remove(clazz);
+            return this;
         }
     }
 
