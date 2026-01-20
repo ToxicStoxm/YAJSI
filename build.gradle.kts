@@ -1,6 +1,6 @@
 plugins {
     id("java-library")
-    id("com.vanniktech.maven.publish") version "0.34.0"
+    id("com.vanniktech.maven.publish") version "0.36.0"
 }
 
 group = "com.toxicstoxm"
@@ -13,7 +13,7 @@ repositories {
 
 val lombokVersion = "1.18.42"
 val jetbrainsAnnotationsVersion = "26.0.2-1"
-val junitVersion = "6.0.1"
+val junitVersion = "6.0.2"
 val classgraphVersion = "4.8.184"
 val stormYAMLVersion = "1.0.0"
 
@@ -50,7 +50,7 @@ tasks.test {
 mavenPublishing {
     publishToMavenCentral()
 
-    signAllPublications()
+    //signAllPublications()
 
     coordinates("com.toxicstoxm", "YAJSI", version as String?)
 
@@ -78,6 +78,14 @@ mavenPublishing {
             connection = "scm:git:git://github.com/ToxicStoxm/YAJSI.git"
             developerConnection = "scm:git:ssh://git@github.com/ToxicStoxm/YAJSI.git"
         }
+    }
+}
+
+tasks.withType<Jar>().configureEach {
+    manifest {
+        attributes(
+            "Automatic-Module-Name" to "YAJSI"
+        )
     }
 }
 
