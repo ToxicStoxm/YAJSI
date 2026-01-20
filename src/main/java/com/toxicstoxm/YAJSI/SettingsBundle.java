@@ -1,0 +1,65 @@
+package com.toxicstoxm.YAJSI;
+
+import com.toxicstoxm.YAJSI.upgrading.UpgradeCallback;
+import com.toxicstoxm.YAJSI.upgrading.Version;
+import lombok.Builder;
+import lombok.Getter;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
+@Getter
+@Builder
+public class SettingsBundle {
+    private final UUID id = UUID.randomUUID();
+    private final Version version;
+    private final File file;
+    private final ConfigType type;
+    private final List<String> envSubstituted = new ArrayList<>();
+
+    public SettingsBundle(@NotNull Version version, @NotNull File f, @NotNull ConfigType type) {
+        this.version = version;
+        this.file = f;
+        this.type = type;
+    }
+
+    public SettingsBundle(@NotNull Version version, @NotNull File f) {
+        this(version, f, ConfigType.SETTINGS);
+    }
+
+    public void register() throws IllegalStateException, UnsupportedOperationException {
+        SettingsManager.getInstance().registerConfig(this);
+    }
+
+    public void registerUpgradeCallback(@NotNull UpgradeCallback cb, @NotNull Version base) throws UnsupportedOperationException {
+        SettingsManager.getInstance().registerUpgradeCallback(getClass(), cb, base);
+    }
+
+    public boolean isReadonly() {
+        return this.type == ConfigType.READONLY;
+    }
+
+    public boolean isEnvSubstituted(String variable) {
+        return envSubstituted.contains(variable);
+    }
+
+    public void setEnvSubstituted(@NotNull String variable) {
+        envSubstituted.add(variable);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        SettingsBundle that = (SettingsBundle) o;
+        return Objects.equals(id, that.id) && Objects.equals(version, that.version) && Objects.equals(file, that.file) && type == that.type;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, version, file, type);
+    }
+}

@@ -1,37 +1,49 @@
 plugins {
     id("java-library")
-    id("com.vanniktech.maven.publish") version "0.34.0"
+    id("com.vanniktech.maven.publish") version "0.36.0"
 }
 
 group = "com.toxicstoxm"
-version = "2.3.0"
+version = "3.0.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
+val lombokVersion = "1.18.42"
+val jetbrainsAnnotationsVersion = "26.0.2-1"
+val junitVersion = "6.0.2"
+val classgraphVersion = "4.8.184"
+val stormYAMLVersion = "1.0.0"
+
 dependencies {
-    implementation("org.jetbrains:annotations:26.0.2-1")
-    annotationProcessor("org.jetbrains:annotations:26.0.2-1")
+    implementation("org.jetbrains:annotations:$jetbrainsAnnotationsVersion")
+    annotationProcessor("org.jetbrains:annotations:$jetbrainsAnnotationsVersion")
 
-    implementation("org.projectlombok:lombok:1.18.42")
-    annotationProcessor("org.projectlombok:lombok:1.18.42")
+    implementation("org.projectlombok:lombok:$lombokVersion")
+    annotationProcessor("org.projectlombok:lombok:$lombokVersion")
 
-    implementation("org.yaml:snakeyaml:2.5")
+    implementation("com.toxicstoxm:StormYAML:$stormYAMLVersion")
 
-    implementation("io.github.classgraph:classgraph:4.8.184")
+    implementation("io.github.classgraph:classgraph:$classgraphVersion")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:6.0.0")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.0.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:$junitVersion")
+
+    testImplementation("org.projectlombok:lombok:$lombokVersion")
+    testAnnotationProcessor("org.projectlombok:lombok:$lombokVersion")
+
+    testImplementation("org.jetbrains:annotations:$jetbrainsAnnotationsVersion")
+    testAnnotationProcessor("org.jetbrains:annotations:$jetbrainsAnnotationsVersion")
 }
 
 tasks.test {
     useJUnitPlatform()
-}
 
-tasks.jar {
-    manifest {
-        attributes["Main-Class"] = "com.toxicstoxm.YAJSI.YAJSISettingsManager"
+    testLogging {
+        showStandardStreams = true
+        events("passed", "skipped", "failed")
     }
 }
 
@@ -40,11 +52,11 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates("com.toxicstoxm.YAJSI", "YAJSI", version as String?)
+    coordinates("com.toxicstoxm", "YAJSI", version as String?)
 
     pom {
         name = "YAJSI"
-        description = "YAJSI (Yet another Java settings implementation) uses SnakeYAML and some cool logic to make your life easier"
+        description = "YAJSI (Yet another Java settings implementation) is a high level YAML config file manager"
         inceptionYear = "2024"
         url = "https://github.com/ToxicStoxm/YAJSI/"
         licenses {
@@ -58,7 +70,7 @@ mavenPublishing {
             developer {
                 id = "toxicstoxm"
                 name = "ToxicStoxm"
-                url = "https://github.com/ToxicStoxm/"
+                url = "https://toxicstoxm.com"
             }
         }
         scm {
@@ -66,6 +78,14 @@ mavenPublishing {
             connection = "scm:git:git://github.com/ToxicStoxm/YAJSI.git"
             developerConnection = "scm:git:ssh://git@github.com/ToxicStoxm/YAJSI.git"
         }
+    }
+}
+
+tasks.withType<Jar>().configureEach {
+    manifest {
+        attributes(
+            "Automatic-Module-Name" to "YAJSI"
+        )
     }
 }
 

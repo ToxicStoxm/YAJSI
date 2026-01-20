@@ -1,0 +1,31 @@
+# Improvements for the next version
+
+- [X] Fix error when a config value is not initialized
+- [X] Extract the YAML and File package of YAJSI into another separate library
+- [X] Improve configuration for SettingsManager to prevent having to use the constructor
+  - Create a kind of factory or intermediate initializer to bootstrap the whole thing
+- [ ] reduce cognitive complexity as much as possible
+  - Avoid recursion
+  - Don't create a monolith singleton again
+- [X] Separate read-only configs from settings files
+  - [X] Read only files
+    - initial write, if config doesn't exist
+    - overwritable with environment variables
+    - configurable update behavior, with warning if fs is read only
+  - [X] Settings files
+    - always save after application stop
+    - overwritable with environment variables (current session only!)
+    - configurable update behaviour
+- [X] Version-update functions
+  - callbacks for upgrading config files to newer versions
+  - input param, old config
+  - returns new converted config
+  - possibility to ask user (?)
+  - [X] Add version number to config and settings files
+    - If the version number is missing:
+      -  [X] Configurable behaviour
+        - Refuse service and display error / warning
+        - Start with default values and display warning
+- [ ] Support More Data Types
+  - [ ] Maps
+  - [X] Object Lists
