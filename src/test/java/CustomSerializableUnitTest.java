@@ -66,10 +66,6 @@ public class CustomSerializableUnitTest {
             super(new ConfigVersion(1,0,0), f);
         }
 
-        public TestBundle() {
-            this(new File("src/test/resources/serializer-tests.yaml"));
-        }
-
         // annotated to use external serializer
         @SerializableWith(serializer = LoggerSectionSerializer.class)
         @NoArgsConstructor
