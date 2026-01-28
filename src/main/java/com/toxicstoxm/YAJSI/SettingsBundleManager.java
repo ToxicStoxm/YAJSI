@@ -162,7 +162,6 @@ public class SettingsBundleManager {
 
                 String fullKey = getYAMLPath(field, base);
                 keys.remove(fullKey);
-                updateComments(field, fullKey, yaml);
                 Object fieldValue = getFieldValue(config, field);
 
                 boolean yamlHasKey = yaml.contains(fullKey);
@@ -180,6 +179,7 @@ public class SettingsBundleManager {
 
                     if (!yamlHasKey) {
                         yaml.set(fullKey, ((YAMLSerializable) fieldValue).serializeSelf());
+                        updateComments(field, fullKey, yaml);
                     }
 
                     field.set(config, fieldValue);
@@ -200,6 +200,7 @@ public class SettingsBundleManager {
 
                         if (!yamlHasKey) {
                             yaml.set(fullKey, serializer.serialize(fieldValue));
+                            updateComments(field, fullKey, yaml);
                         }
 
                         field.set(config, fieldValue);
@@ -218,6 +219,8 @@ public class SettingsBundleManager {
 
                     if (!yamlHasKey) {
                         yaml.set(fullKey, fieldValue);
+                        updateComments(field, fullKey, yaml);
+
                         // Ensure value is not default immutable list
                         Supplier<?> supplier = DEFAULT_SUPPLIERS.get(field.getType());
                         if (supplier != null) {
@@ -305,6 +308,7 @@ public class SettingsBundleManager {
                             serialized.add(section);
                         }
                         yaml.set(fullKey, serialized);
+                        updateComments(field, fullKey, yaml);
 
                         Supplier<?> supplier = DEFAULT_SUPPLIERS.get(field.getType());
                         if (supplier != null) {
@@ -331,7 +335,10 @@ public class SettingsBundleManager {
                         value = array;
                     }
 
-                    if (!yamlHasKey) yaml.set(fullKey, fieldValue);
+                    if (!yamlHasKey) {
+                        yaml.set(fullKey, fieldValue);
+                        updateComments(field, fullKey, yaml);
+                    }
 
                     if (checkEnv) {
                         Object finalArray = EnvUtils.checkForEnvPrimitiveArray(field, value);
@@ -351,7 +358,10 @@ public class SettingsBundleManager {
 
                 Object value = getValue(field.getType(), yaml.get(fullKey, fieldValue));
 
-                if (!yamlHasKey) yaml.set(fullKey, fieldValue);
+                if (!yamlHasKey) {
+                    yaml.set(fullKey, fieldValue);
+                    updateComments(field, fullKey, yaml);
+                }
 
                 if (checkEnv) {
                     Object finalObject = EnvUtils.checkForEnvPrimitive(field, value);
