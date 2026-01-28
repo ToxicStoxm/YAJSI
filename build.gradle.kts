@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.toxicstoxm"
-version = "3.0.0"
+version = "3.0.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -50,7 +50,7 @@ tasks.test {
 mavenPublishing {
     publishToMavenCentral()
 
-    //signAllPublications()
+    signAllPublications()
 
     coordinates("com.toxicstoxm", "YAJSI", version as String?)
 
