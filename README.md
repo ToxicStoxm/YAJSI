@@ -1,7 +1,7 @@
 # YAJSI (Yet another Java settings implementation)
 [![Build](https://github.com/ToxicStoxm/YAJSI/actions/workflows/gradle.yml/badge.svg)](https://github.com/ToxicStoxm/YAJSI/actions/workflows/gradle.yml)
 
-#### Available at [Maven Central](https://central.sonatype.com/artifact/com.toxicstoxm.YAJSI/YAJSI)
+#### Available at [Maven Central](https://central.sonatype.com/artifact/com.toxicstoxm/YAJSI)
 
 ### Maven
 ```xml
