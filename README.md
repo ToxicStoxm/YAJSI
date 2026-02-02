@@ -14,5 +14,5 @@
 
 ### Gradle
 ```groovy
-implementation 'com.toxicstoxm.YAJSI:[Latest Release Version]'
+implementation 'com.toxicstoxm:YAJSI:[Latest Release Version]'
 ```
