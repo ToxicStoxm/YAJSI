@@ -38,6 +38,12 @@ dependencies {
     testAnnotationProcessor("org.jetbrains:annotations:$jetbrainsAnnotationsVersion")
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
 
