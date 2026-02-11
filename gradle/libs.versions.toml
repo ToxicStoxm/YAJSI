@@ -1,0 +1,20 @@
+[versions]
+lombok = "1.18.42"
+jetbrains-annotations = "26.0.2-1"
+junit = "6.0.2"
+classgraph = "4.8.184"
+stormyaml = "1.0.0"
+vanniktech-maven-publish = "0.36.0"
+
+[libraries]
+lombok = { group = "org.projectlombok", name = "lombok", version.ref = "lombok" }
+jetbrains-annotations = { group = "org.jetbrains", name = "annotations", version.ref = "jetbrains-annotations" }
+
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
+junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher", version.ref = "junit" }
+
+classgraph = { group = "io.github.classgraph", name = "classgraph", version.ref = "classgraph" }
+stormyaml = { group = "com.toxicstoxm", name = "StormYAML", version.ref = "stormyaml" }
+
+[plugins]
+vanniktech-maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "vanniktech-maven-publish" }
