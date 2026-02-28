@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.toxicstoxm"
-version = "3.0.1"
+version = "3.0.2"
 
 repositories {
     mavenCentral()
@@ -18,7 +18,7 @@ dependencies {
     implementation(libs.lombok)
     annotationProcessor(libs.lombok)
 
-    implementation(libs.stormyaml)
+    api(libs.stormyaml)
     implementation(libs.classgraph)
 
     testImplementation(libs.junit.jupiter)
