@@ -2,33 +2,45 @@ package com.toxicstoxm.YAJSI;
 
 import com.toxicstoxm.YAJSI.upgrading.UpgradeCallback;
 import com.toxicstoxm.YAJSI.upgrading.Version;
-import lombok.Builder;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 @Getter
-@Builder
 public class SettingsBundle {
     private final UUID id = UUID.randomUUID();
     private final Version version;
     private final File file;
+    private final InputStream configStream;
     private final ConfigType type;
     private final List<String> envSubstituted = new ArrayList<>();
 
     public SettingsBundle(@NotNull Version version, @NotNull File f, @NotNull ConfigType type) {
         this.version = version;
         this.file = f;
+        this.configStream = null;
         this.type = type;
+    }
+
+    public SettingsBundle(@NotNull Version version, @NotNull InputStream configStream) {
+        this.version = version;
+        this.file = null;
+        this.configStream = configStream;
+        this.type = ConfigType.READONLY;
     }
 
     public SettingsBundle(@NotNull Version version, @NotNull File f) {
         this(version, f, ConfigType.SETTINGS);
+    }
+
+    public boolean isSourceUnwritable() {
+        return configStream != null && file == null;
     }
 
     public void register() throws IllegalStateException, UnsupportedOperationException {

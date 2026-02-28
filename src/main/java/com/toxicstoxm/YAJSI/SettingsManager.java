@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.*;
 import java.util.function.Supplier;
 
@@ -108,6 +109,10 @@ public class SettingsManager {
     }
 
     private @NotNull YamlConfiguration getFile(@NotNull SettingsBundle config) {
+        if (config.isSourceUnwritable()) {
+            return YamlConfiguration.loadConfiguration(new InputStreamReader(config.getConfigStream()));
+        }
+
         File configFile = config.getFile();
 
         // Ensure parent directories exist

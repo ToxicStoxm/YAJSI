@@ -125,7 +125,12 @@ public class SettingsBundleManager {
 
         loadValues(keys, processedObjects, config, upgraded);
 
-        if (initial || config.isReadonly() && (autoUpgraded || upgradedYaml.cbUpgraded()) && SettingsManager.getSettings().isSaveReadOnlyConfigOnVersionUpgrade() || !config.isReadonly()) {
+        if ((initial
+                || config.isReadonly()
+                   && (autoUpgraded || upgradedYaml.cbUpgraded())
+                   && SettingsManager.getSettings().isSaveReadOnlyConfigOnVersionUpgrade()
+                || !config.isReadonly()
+        ) && !config.isSourceUnwritable()) {
             for (String unused : keys) {
                 if (!upgraded.contains(unused)) continue;
                 switch (SettingsManager.getSettings().getAutoUpgradeBehaviour()) {
@@ -562,7 +567,7 @@ public class SettingsBundleManager {
     }
 
     public boolean save(SettingsBundle bundle) {
-        if (bundle == null || bundle.isReadonly() || !registeredConfigs.containsKey(bundle)) {
+        if (bundle == null || bundle.isReadonly() || !registeredConfigs.containsKey(bundle) || bundle.isSourceUnwritable()) {
             return false;
         }
 
